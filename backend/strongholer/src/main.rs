@@ -1,12 +1,13 @@
-use actix_web::{post,web, App, HttpServer, Responder, Result};
+use actix_web::{HttpRequest, HttpResponse};
+use actix_web::{post,web, App, HttpServer, Responder, Result, cookie::Cookie};
 use serde::{Deserialize, Serialize};
 mod kdfpassword;
 use kdfpassword::base64_full_hash;
 mod auth;
 use auth::Auth;
-use auth::login;
+use auth::Login;
 
-#[derive(Deserialize)]
+
 
 #[derive(Serialize)]
 struct MyObj{
@@ -21,23 +22,24 @@ struct User {
 
 /*S'incrire */
 #[post("/signup")]
-async fn signup(id: web::Json<Login>) -> Result<impl Responder>{
+async fn signup(id: web::Json<Login>) -> HttpResponse{
     let password= &id.password;
     let salt = &id.username;
     let user: User = User{
         id:1,
         kdf: String::from(base64_full_hash(&password, &salt))
     };
-    let login = auth::login {
-        username: id.username.clone(),
-        password: id.password.clone()
-    };
-    let _ = Auth::get_access().await;
-    Ok(web::Json(user))
+    let token = Auth::get_token().await;
+    let cookie = Cookie::build("jwt", token)
+    .path("/")
+    .secure(true)
+    .http_only(true)
+    .finish();
+    HttpResponse::Ok()
+    .append_header(("Set-Cookie", cookie.to_string()))
+    .body("body")
+    
 }
-/*Se connecter */
-#[post("/signin")]
-
 
 
 #[actix_web::main]
