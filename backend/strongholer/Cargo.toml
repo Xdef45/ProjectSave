@@ -1,0 +1,17 @@
+[workspace]
+
+[package]
+name = "strongholer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+actix-web = "=4.12.1"
+serde = "1.0.228"
+argon2 = "0.5.3"
+base64 = "0.22.1"
+byte_string = "1.0.0"
+actix-jwt-auth-middleware = "0.5.0"
+sqlx = { version = "0.8", features = [ "runtime-async-std","mysql" ] }
+openssl = { version = "0.10", features = ["vendored"] }
+jsonwebtoken = "10.2.0"
