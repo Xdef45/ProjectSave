@@ -23,13 +23,11 @@ struct User {
 /*S'incrire */
 #[post("/signup")]
 async fn signup(id: web::Json<Login>) -> HttpResponse{
-    let password= &id.password;
-    let salt = &id.username;
-    let user: User = User{
-        id:1,
-        kdf: String::from(base64_full_hash(&password, &salt))
+    let login= Login{
+        username: id.username.clone(), 
+        password: id.password.clone()
     };
-    let token = Auth::get_token().await;
+    let token = Auth.signup(login).await.expect("Le token n'as pas pu se créer");
     let cookie = Cookie::build("jwt", token)
     .path("/")
     .secure(true)
@@ -37,7 +35,7 @@ async fn signup(id: web::Json<Login>) -> HttpResponse{
     .finish();
     HttpResponse::Ok()
     .append_header(("Set-Cookie", cookie.to_string()))
-    .body("body")
+    .body("")
     
 }
 
