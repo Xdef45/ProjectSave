@@ -5,7 +5,9 @@
 1. **[Équipe](#1-équipe)**
 2. **[Description du projet](#2-description-du-projet)**
 3. **[Infrastructure](#3-infrastructure)**
-
+4. **[Fonctionnalités](#4-fonctionnalités)**
+5. **[Technnologies utilisées](#5-technologies-utilisées)**
+6. **[fonctionneent](#6-fonctionnement)**
 
 ## 1. Équipe
 
@@ -48,4 +50,6 @@ Voici une liste exhaustive des fonctionnalités disponibles dans notre projet:
 ## 6. Fonctionnement 
 
 1. Un utilisateur se créer un compte sur le site avec un nom d'utilisateur et un mot de passe 
-2. Il peut alors télécharger notre application 
+2. Il peut alors télécharger notre application
+![ScreenApp](/documentations%20des%20outils/images/AppAccueil.png)
+3. Il peut désormais envoyer ses sauvegardes en tout sécurité sur notre infrastructure
