@@ -1,7 +1,7 @@
 ```
 CREATE DATABASE strongholder;
 USE strongholder;
-CREATE TABLE Creadentials(
+CREATE TABLE Credentials(
     username VARCHAR(255) PRIMARY KEY UNIQUE NOT NULL,
     encrypt_master_key_2 VARCHAR(255) UNIQUE NOT NULL
     );
