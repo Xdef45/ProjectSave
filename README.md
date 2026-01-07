@@ -44,3 +44,8 @@ Voici une liste exhaustive des fonctionnalités disponibles dans notre projet:
 * Pour la sécurité de toutes les machines de l'infrastructure nous utilisons la solution open source [Wazuh](https://wazuh.com/) qui nous permet d'avoir une vue d'ensemble sur les machines et des vulnérabilités.
 * Comme gestionnaire de mot de passe intégré, nous avons choisi la solution [VaultWarden](https://github.com/dani-garcia/vaultwarden) qui est gratuite et open source. On ajoute à cela la solution [zabbix](https://www.zabbix.com/fr) qui nous permet une vue d'ensemble des machines concernant leur statistiques CPU, mémoire et leur stockage.
 * Les sauvegardes sont sauvegarder sur des machines utilisant le système de [Ceph](https://ceph.io/en/), qui réplique automatiquement les sauvegardes sur d'autres disques pour garantir une redondance.
+
+## 6. Fonctionnement 
+
+1. Un utilisateur se créer un compte sur le site avec un nom d'utilisateur et un mot de passe 
+2. Il peut alors télécharger notre application 
