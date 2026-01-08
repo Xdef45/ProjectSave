@@ -6,7 +6,7 @@ const ITERATION_COST: u32 = 3;
 const PARALLELISM_COST: u32 = 4;
 const HASH_LENGTH: usize = 32;
 
-pub fn create_kdf(password: &String, salt: &String) -> [u8; HASH_LENGTH]{
+pub async fn create_kdf(password: &String, salt: &String) -> [u8; HASH_LENGTH]{
     let output_len: Option<usize> = Some(HASH_LENGTH);
     let param: Params= argon2::Params::new(MEMORY_COST, ITERATION_COST, PARALLELISM_COST, output_len).expect("problème");
     let password = password.as_bytes();

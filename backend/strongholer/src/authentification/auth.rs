@@ -48,7 +48,7 @@ impl Auth {
         }
 
         /* Ajout de l'utilisateur à la base de donnée */
-        let kdf_client:[u8; 32]  = create_kdf(&login.password, &login.username);
+        let kdf_client:[u8; 32]  = create_kdf(&login.password, &login.username).await;
         let uuid = Uuid::new_v4().hyphenated().to_string();
 
         let key_encrypted = self.create_master_key_2(&kdf_client);
@@ -96,7 +96,7 @@ impl Auth {
         }
 
         /* Création de la clé dériver */
-        let kdf_client:[u8; 32]  = create_kdf(&login.password, &login.username);
+        let kdf_client:[u8; 32]  = create_kdf(&login.password, &login.username).await;
 
         /* Convertion hex to bytes */
         let master_key_2_encrypted = hex::decode(result[0].encrypt_master_key_2.clone()).expect("Problème lors de la convertion hex to byte");
