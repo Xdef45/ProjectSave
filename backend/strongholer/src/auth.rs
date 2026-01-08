@@ -49,6 +49,21 @@ impl Auth {
         let kdf_client:[u8; 32]  = create_kdf(&login.password, &login.username);
         let uuid = Uuid::new_v4().hyphenated().to_string();
 
+        let key_encrypted = self.create_master_key_2(&kdf_client);
+
+        /* Ajout de l'utilisateur dans la base de données */
+        let query = sqlx::query("INSERT INTO Credentials (id , username, encrypt_master_key_2) VALUES(?,?,?)")
+        .bind(&uuid)
+        .bind(login.username.as_str())
+        .bind(key_encrypted);
+        let _ = query.execute(&mut connection).await.expect("l'utilisateur n'a pas pu être enregistrer");
+        
+        /* Renvoyer le cookie JWT */
+        let credentials = Credentials{id:uuid, kdf:hex::encode(kdf_client)};
+        Ok(self.create_token(credentials))
+    }
+
+    pub fn create_master_key_2(&self, kdf_client:&[u8]) -> String{
         /* Création clé_master */
         let mut master_key = [0u8;32];
         rand_bytes(&mut master_key).expect("La clé master n'a pas pu être créer correctement");
@@ -68,18 +83,7 @@ impl Auth {
         let _ = wrap_key(&kdf_key, None, &mut master_key_2_encrypted, &master_key_2).expect("Problème lors du chiffrement de la clé master 2");
 
         /* enregistrer sur un format hexadécimal */
-        let key_encrypted = hex::encode(&master_key_2_encrypted);
-
-        /* Ajout de l'utilisateur dans la base de données */
-        let query = sqlx::query("INSERT INTO Credentials (id , username, encrypt_master_key_2) VALUES(?,?,?)")
-        .bind(&uuid)
-        .bind(login.username.as_str())
-        .bind(key_encrypted);
-        let _ = query.execute(&mut connection).await.expect("l'utilisateur n'a pas pu être enregistrer");
-        
-        /* Renvoyer le cookie JWT */
-        let credentials = Credentials{id:uuid, kdf:hex::encode(kdf_client)};
-        Ok(self.create_token(credentials))
+        return hex::encode(&master_key_2_encrypted);
     }
 
     pub async fn signin(&mut self, login:Login) -> Result<String, LoginState>{
@@ -99,17 +103,17 @@ impl Auth {
         /* Création de la clé dériver */
         let kdf_client:[u8; 32]  = create_kdf(&login.password, &login.username);
 
-        /* Vérification du mot de passe */
-
         /* Convertion hex to bytes */
         let master_key_2_encrypted = hex::decode(result[0].encrypt_master_key_2.clone()).expect("Problème lors de la convertion hex to byte");
 
+        /* Vérification du mot de passe */
         let kdf_key = AesKey::new_decrypt(&kdf_client).expect("wrap kdf n'a pas focntionner");
         let mut master_key_2 = [0u8; 64];
         let _ = match unwrap_key(&kdf_key, None, &mut master_key_2, &master_key_2_encrypted){
-            Err(e)=> return Err(LoginState::InvalidPassword),
+            Err(_)=> return Err(LoginState::InvalidPassword),
             Ok(o)=>o
         };
+
         /* Renvoyer le cookie JWT */
         let credentials = Credentials{id:result[0].id.clone(), kdf:hex::encode(kdf_client)};
         Ok(self.create_token(credentials))
@@ -117,12 +121,10 @@ impl Auth {
 
     fn create_token(&self, credentials: Credentials) -> String{
         let header = Header::new(Algorithm::HS384);
-        let token =match encode(&header, &credentials, &EncodingKey::from_secret("secret".as_ref())){
+        let token = match encode(&header, &credentials, &EncodingKey::from_secret("secret".as_ref())){
             Ok(token) => token,
             Err(_)=> "erreur".to_string()
         };
         token
     }
-
-
 }
