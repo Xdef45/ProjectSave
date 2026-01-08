@@ -1,4 +1,3 @@
-use actix_web::http::header::RETRY_AFTER;
 use sqlx::{mysql, Connection};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
@@ -6,8 +5,6 @@ use crate::kdfpassword::create_kdf;
 use uuid::Uuid;
 use openssl::rand::rand_bytes;
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
-use openssl::sha::sha256;
-use subtle::ConstantTimeEq;
 
 #[derive(Deserialize)]
 pub struct Login{
@@ -75,19 +72,11 @@ impl Auth {
         let mut master_key = [0u8;32];
         rand_bytes(&mut master_key).expect("La clé master n'a pas pu être créer correctement");
 
-        /* Création du hash de laclé master */
-        let hash_master_key: [u8; 32] = sha256(&master_key);
-        println!(" clé master : {:?},\n hash clé: {:?}", master_key, hash_master_key);
-
-        /* Concaténation des de la clé et du hash */
-        let mut master_key_2: Vec<u8> = vec![];
-        master_key_2.extend_from_slice(&master_key);
-        master_key_2.extend_from_slice(&hash_master_key);
 
         /*Chiffrement clé_master_2 */
         let kdf_key = AesKey::new_encrypt(&kdf_client).expect("wrap kdf n'a pas focntionner");
-        let mut master_key_2_encrypted = [0u8; 72];
-        let _ = wrap_key(&kdf_key, None, &mut master_key_2_encrypted, &master_key_2).expect("Problème lors du chiffrement de la clé master 2");
+        let mut master_key_2_encrypted = [0u8; 40];
+        let _ = wrap_key(&kdf_key, None, &mut master_key_2_encrypted, &master_key).expect("Problème lors du chiffrement de la clé master 2");
 
         /* enregistrer sur un format hexadécimal */
         return hex::encode(&master_key_2_encrypted);
@@ -114,7 +103,7 @@ impl Auth {
 
         /* Vérification du mot de passe */
         let kdf_key = AesKey::new_decrypt(&kdf_client).expect("wrap kdf n'a pas focntionner");
-        let mut master_key_2 = [0u8; 64];
+        let mut master_key_2 = [0u8; 32];
         let _ = match unwrap_key(&kdf_key, None, &mut master_key_2, &master_key_2_encrypted){
             Err(_)=> return Err(LoginState::InvalidPassword),
             Ok(o)=>o
@@ -128,7 +117,7 @@ impl Auth {
     /* Vérifier token jwt */
     pub fn validation(self,token_jwt: String)-> Result<bool, String>{
         let mut validation = Validation::new(Algorithm::HS384);
-        validation.leeway=20;
+        validation.leeway=60*10;
         match decode::<Credentials>(&token_jwt, &DecodingKey::from_secret("secret".as_ref()), &validation){
             Err(e)=> {
                 if true{
