@@ -1,9 +1,8 @@
 use actix_web::{HttpRequest, HttpResponse};
 use actix_web::{post,web, App, HttpServer, cookie::Cookie};
-mod kdfpassword;
-mod auth;
-use auth::Auth;
-use auth::Login;
+mod authentification;
+use crate::authentification::auth::{Login, Auth};
+use crate::authentification::kdfpassword;
 
 /*S'incrire */
 #[post("/signup")]
