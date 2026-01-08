@@ -1,7 +1,10 @@
 use sqlx::{mysql, Connection};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey};
 use serde::{Deserialize, Serialize};
-use crate::kdfpassword::base64_full_hash;
+use crate::kdfpassword::create_kdf;
+use uuid::Uuid;
+use openssl::rand::rand_bytes;
+use openssl::aes::{AesKey, unwrap_key, wrap_key};
 
 #[derive(Deserialize)]
 pub struct Login{
@@ -10,19 +13,24 @@ pub struct Login{
 }
 #[derive(Debug, Serialize, Deserialize)]
 struct Credentials{
-    id: u32,
+    id: String,
     kdf: String
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub enum LoginState{
     AlreadyExist,
+    NotSignup
 
+}
+#[derive(sqlx::FromRow)]
+struct MysqlCredentials{
+    id: String,
+    encrypt_master_key_2: String
 }
 
 pub struct Auth;
 impl Auth {
-    
-    pub async fn signup(&self, login: Login) -> Result<String, LoginState> {
+    pub async fn signup(&mut self, login: Login) -> Result<String, LoginState> {
         /* Initialisation des paramètre de connection à la base de donnée */
         let opt = mysql::MySqlConnectOptions::new().host("127.0.0.1").password("mypass").port(3306).username("root").database("strongholder");
         let mut connection = mysql::MySqlConnection::connect_with(&opt).await.unwrap();
@@ -35,18 +43,53 @@ impl Auth {
         }
 
         /* Ajout de l'utilisateur à la base de donnée */
-        let kdf_client: String = base64_full_hash(&login.password, &login.username);
-        let query = sqlx::query("INSERT INTO Credentials (username, encrypt_master_key_2) VALUES(?,?)")
+        let kdf_client:[u8; 32]  = create_kdf(&login.password, &login.username);
+        let uuid = Uuid::new_v4().hyphenated().to_string();
+
+        /* Création clé_master */
+        let mut master_key = [0u8;256];
+        rand_bytes(&mut master_key).expect("La clé n'a pas pu être créer correctement");
+
+        /*Chiffrement clé_master_2 */
+        let kdf_key = AesKey::new_encrypt(&kdf_client).expect("wrap kdf");
+        let mut ciphertext = [0u8; 264];
+        let _ = wrap_key(&kdf_key, None, &mut ciphertext, &master_key);
+        let key_encrypted = hex::encode(ciphertext);
+
+        let query = sqlx::query("INSERT INTO Credentials (id , username, encrypt_master_key_2) VALUES(?,?,?)")
+        .bind(&uuid)
         .bind(login.username.as_str())
-        .bind(kdf_client);
-        query.execute(&mut connection).await;
+        .bind(key_encrypted);
+        let _ = query.execute(&mut connection).await.expect("l'utilisateur n'a pas pu être enregistrer");
         
         /* Renvoyer le cookie JWT */
-        let credentials = Credentials{id:32, kdf:"test".to_string()};
+        let credentials = Credentials{id:uuid, kdf:hex::encode(kdf_client)};
         Ok(self.create_token(credentials))
     }
 
-    pub fn create_token(&self,credentials: Credentials) -> String{
+    pub async fn signin(&mut self, login:Login) -> Result<String, LoginState>{
+         /* Initialisation des paramètre de connection à la base de donnée */
+        let opt = mysql::MySqlConnectOptions::new().host("127.0.0.1").password("mypass").port(3306).username("root").database("strongholder");
+        let mut connection = mysql::MySqlConnection::connect_with(&opt).await.unwrap();
+        
+        /* Récupération clé master 2 */
+        let query = sqlx::query_as("SELECT id, encrypt_master_key_2 FROM Credentials WHERE username=?").bind(login.username.as_str());
+        let result: Vec<MysqlCredentials> = query.fetch_all(&mut connection).await.expect("Une erreur c'est produite");
+
+        /* Vérification si l'utilisateur existe */
+        if result.len() != 1 {
+            return Err(LoginState::NotSignup);
+        }
+
+        /* Création de la clé dériver */
+        let kdf_client:[u8; 32]  = create_kdf(&login.password, &login.username);
+
+        /* Renvoyer le cookie JWT */
+        let credentials = Credentials{id:result[0].id.clone(), kdf:hex::encode(kdf_client)};
+        Ok(self.create_token(credentials))
+    }
+
+    fn create_token(&self, credentials: Credentials) -> String{
         let header = Header::new(Algorithm::HS384);
         let token =match encode(&header, &credentials, &EncodingKey::from_secret("secret".as_ref())){
             Ok(token) => token,
