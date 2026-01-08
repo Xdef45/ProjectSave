@@ -1,6 +1,6 @@
 use actix_web::http::header::RETRY_AFTER;
 use sqlx::{mysql, Connection};
-use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey};
+use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
 use crate::kdfpassword::create_kdf;
 use uuid::Uuid;
@@ -16,6 +16,7 @@ pub struct Login{
 }
 #[derive(Debug, Serialize, Deserialize)]
 struct Credentials{
+    exp: u64,
     id: String,
     kdf: String
 }
@@ -32,11 +33,15 @@ struct MysqlCredentials{
 }
 
 pub struct Auth;
+
 impl Auth {
+    async fn db(&mut self) -> sqlx::MySqlConnection{
+        let opt = mysql::MySqlConnectOptions::new().host("127.0.0.1").password("mypass").port(3306).username("root").database("strongholder");
+        return mysql::MySqlConnection::connect_with(&opt).await.unwrap();
+    }
     pub async fn signup(&mut self, login: Login) -> Result<String, LoginState> {
         /* Initialisation des paramètre de connection à la base de donnée */
-        let opt = mysql::MySqlConnectOptions::new().host("127.0.0.1").password("mypass").port(3306).username("root").database("strongholder");
-        let mut connection = mysql::MySqlConnection::connect_with(&opt).await.unwrap();
+        let mut connection = self.db().await;
 
         /* Vérification si l'utilisateur existe */
         let query = sqlx::query("SELECT username FROM Credentials WHERE username=?").bind(login.username.as_str());
@@ -59,9 +64,11 @@ impl Auth {
         let _ = query.execute(&mut connection).await.expect("l'utilisateur n'a pas pu être enregistrer");
         
         /* Renvoyer le cookie JWT */
-        let credentials = Credentials{id:uuid, kdf:hex::encode(kdf_client)};
+        let credentials = Credentials{exp: get_current_timestamp(), id:uuid, kdf:hex::encode(kdf_client)};
         Ok(self.create_token(credentials))
     }
+
+
 
     pub fn create_master_key_2(&self, kdf_client:&[u8]) -> String{
         /* Création clé_master */
@@ -87,10 +94,9 @@ impl Auth {
     }
 
     pub async fn signin(&mut self, login:Login) -> Result<String, LoginState>{
-         /* Initialisation des paramètre de connection à la base de donnée */
-        let opt = mysql::MySqlConnectOptions::new().host("127.0.0.1").password("mypass").port(3306).username("root").database("strongholder");
-        let mut connection = mysql::MySqlConnection::connect_with(&opt).await.unwrap();
-        
+        /* Initialisation des paramètre de connection à la base de donnée */
+        let mut connection = self.db().await;
+
         /* Récupération clé master 2 */
         let query = sqlx::query_as("SELECT id, encrypt_master_key_2 FROM Credentials WHERE username=?").bind(login.username.as_str());
         let result: Vec<MysqlCredentials> = query.fetch_all(&mut connection).await.expect("Une erreur c'est produite");
@@ -115,8 +121,28 @@ impl Auth {
         };
 
         /* Renvoyer le cookie JWT */
-        let credentials = Credentials{id:result[0].id.clone(), kdf:hex::encode(kdf_client)};
+        let credentials = Credentials{exp: get_current_timestamp(), id:result[0].id.clone(), kdf:hex::encode(kdf_client)};
         Ok(self.create_token(credentials))
+    }
+
+    /* Vérifier token jwt */
+    pub fn validation(self,token_jwt: String)-> Result<bool, String>{
+        let mut validation = Validation::new(Algorithm::HS384);
+        validation.leeway=20;
+        match decode::<Credentials>(&token_jwt, &DecodingKey::from_secret("secret".as_ref()), &validation){
+            Err(e)=> {
+                if true{
+                    return Err(e.to_string())
+                }else{
+                    return Ok(false)
+                }
+            },
+            Ok(o)=> {
+                println!("{:?}", o.claims.kdf);
+                return Ok(true)
+            }
+        };
+
     }
 
     fn create_token(&self, credentials: Credentials) -> String{

@@ -21,8 +21,16 @@ async fn signup(id: web::Json<Login>) -> HttpResponse{
     .finish();
     HttpResponse::Ok()
     .append_header(("Set-Cookie", cookie.to_string()))
-    .body("")
+    .finish()
     
+}
+
+#[post("/imaconnected")]
+async fn imaconnected(req: HttpRequest) -> HttpResponse{
+    if let Some(cookie) = req.cookie("jwt"){
+        let _ = Auth.validation(cookie.value().to_string()).expect("Lors de la validation d'un cookie, une erreur est survenue");
+    }
+    HttpResponse::Ok().finish()
 }
 
 #[post("/signin")]
@@ -51,6 +59,7 @@ async fn main() -> std::io::Result<()> {
             web::scope("/api")
             .service(signup)
             .service(signin)
+            .service(imaconnected)
         )
     })
     .bind(("127.0.0.1", 8080))?
