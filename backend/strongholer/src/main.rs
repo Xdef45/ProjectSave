@@ -1,13 +1,14 @@
+use actix_web::http::header;
 use actix_web::{HttpRequest, HttpResponse};
-use actix_web::{post,web, App, HttpServer, cookie::Cookie};
+use actix_web::{post,web, App, HttpServer,Result, cookie::Cookie};
 mod authentification;
 use crate::authentification::auth::{Login, Auth};
 use crate::authentification::kdfpassword;
 mod script;
-use crate::script::borg_script;
 use async_std::fs;
 use async_std::prelude::*;
 use actix_multipart::Multipart;
+use actix_files::NamedFile;
 
 const MAX_FILE_SIZE_SSH_KEY: usize = 50 * 1024 * 1024;
 
@@ -42,9 +43,6 @@ async fn imaconnected(req: HttpRequest) -> HttpResponse{
 async fn send_ssh_key(mut payload: Multipart)->HttpResponse{
      while let Some(field) = payload.next().await {
         let mut field = field.expect("field invalide");
-
-        // On ne garde JAMAIS le filename brut (risque path traversal)
-        let cd = field.content_disposition();
         let filepath= "ssh_key".to_string();
         // Crée le fichier
         let mut f = fs::File::create(&filepath)
@@ -66,15 +64,18 @@ async fn send_ssh_key(mut payload: Multipart)->HttpResponse{
     }
     HttpResponse::Ok().finish()
 }
-/* 
+ 
 #[post("/getkey")]
-async fn get_key() -> HttpResponse{
-    let mut file = File::open("test.txt").await;
-    let mut content = Vec::new();
-    file.read_to_end(&mut content).await; /* .expect("Fichier ilisible");*/
-    HttpResponse::Ok().finish()
+async fn get_key() -> Result<NamedFile>{
+    let file = NamedFile::open_async("ssh_key").await
+    .expect("imposible d'ouvrir le fichier")
+    .set_content_disposition(header::ContentDisposition{
+        disposition: header::DispositionType::Attachment,
+        parameters: vec![header::DispositionParam::Filename("ping.txt".to_string())]
+    });
+    Ok(file)
 }
-*/
+
 #[post("/signin")]
 async fn signin(id: web::Json<Login>) -> HttpResponse{
     let login= Login{
@@ -103,6 +104,7 @@ async fn main() -> std::io::Result<()> {
             .service(signin)
             .service(imaconnected)
             .service(send_ssh_key)
+            .service(get_key)
         )
     })
     .bind(("127.0.0.1", 8080))?
