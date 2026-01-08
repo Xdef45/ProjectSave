@@ -5,6 +5,7 @@ use crate::kdfpassword::create_kdf;
 use uuid::Uuid;
 use openssl::rand::rand_bytes;
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
+use openssl::sha::sha256;
 
 #[derive(Deserialize)]
 pub struct Login{
@@ -47,14 +48,20 @@ impl Auth {
         let uuid = Uuid::new_v4().hyphenated().to_string();
 
         /* Création clé_master */
-        let mut master_key = [0u8;256];
-        rand_bytes(&mut master_key).expect("La clé n'a pas pu être créer correctement");
+        let mut master_key = [0u8;32];
+        rand_bytes(&mut master_key).expect("La clé master n'a pas pu être créer correctement");
 
         /*Chiffrement clé_master_2 */
-        let kdf_key = AesKey::new_encrypt(&kdf_client).expect("wrap kdf");
-        let mut ciphertext = [0u8; 264];
-        let _ = wrap_key(&kdf_key, None, &mut ciphertext, &master_key);
-        let key_encrypted = hex::encode(ciphertext);
+        let hash_master_key: [u8; 32] = sha256(&master_key);
+        println!(" clé master : {:?},\n hash clé: {:?}", master_key, hash_master_key);
+        let mut master_key_2: Vec<u8> = vec![];
+        master_key_2.extend_from_slice(&master_key);
+        master_key_2.extend_from_slice(&hash_master_key);
+        let kdf_key = AesKey::new_encrypt(&kdf_client).expect("wrap kdf n'a pas focntionner");
+        let mut master_key_2_encrypted = [0u8; 72];
+        let _ = wrap_key(&kdf_key, None, &mut master_key_2_encrypted, &master_key_2);
+        
+        let key_encrypted = hex::encode(&master_key_2);
 
         let query = sqlx::query("INSERT INTO Credentials (id , username, encrypt_master_key_2) VALUES(?,?,?)")
         .bind(&uuid)
