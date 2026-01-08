@@ -1,3 +1,4 @@
+use actix_web::http::header::RETRY_AFTER;
 use sqlx::{mysql, Connection};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey};
 use serde::{Deserialize, Serialize};
@@ -6,6 +7,7 @@ use uuid::Uuid;
 use openssl::rand::rand_bytes;
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
 use openssl::sha::sha256;
+use subtle::ConstantTimeEq;
 
 #[derive(Deserialize)]
 pub struct Login{
@@ -20,8 +22,8 @@ struct Credentials{
 #[derive(Debug, Serialize, Deserialize)]
 pub enum LoginState{
     AlreadyExist,
-    NotSignup
-
+    NotSignup,
+    InvalidPassword
 }
 #[derive(sqlx::FromRow)]
 struct MysqlCredentials{
@@ -51,18 +53,24 @@ impl Auth {
         let mut master_key = [0u8;32];
         rand_bytes(&mut master_key).expect("La clé master n'a pas pu être créer correctement");
 
-        /*Chiffrement clé_master_2 */
+        /* Création du hash de laclé master */
         let hash_master_key: [u8; 32] = sha256(&master_key);
         println!(" clé master : {:?},\n hash clé: {:?}", master_key, hash_master_key);
+
+        /* Concaténation des de la clé et du hash */
         let mut master_key_2: Vec<u8> = vec![];
         master_key_2.extend_from_slice(&master_key);
         master_key_2.extend_from_slice(&hash_master_key);
+
+        /*Chiffrement clé_master_2 */
         let kdf_key = AesKey::new_encrypt(&kdf_client).expect("wrap kdf n'a pas focntionner");
         let mut master_key_2_encrypted = [0u8; 72];
-        let _ = wrap_key(&kdf_key, None, &mut master_key_2_encrypted, &master_key_2);
-        
-        let key_encrypted = hex::encode(&master_key_2);
+        let _ = wrap_key(&kdf_key, None, &mut master_key_2_encrypted, &master_key_2).expect("Problème lors du chiffrement de la clé master 2");
 
+        /* enregistrer sur un format hexadécimal */
+        let key_encrypted = hex::encode(&master_key_2_encrypted);
+
+        /* Ajout de l'utilisateur dans la base de données */
         let query = sqlx::query("INSERT INTO Credentials (id , username, encrypt_master_key_2) VALUES(?,?,?)")
         .bind(&uuid)
         .bind(login.username.as_str())
@@ -91,6 +99,17 @@ impl Auth {
         /* Création de la clé dériver */
         let kdf_client:[u8; 32]  = create_kdf(&login.password, &login.username);
 
+        /* Vérification du mot de passe */
+
+        /* Convertion hex to bytes */
+        let master_key_2_encrypted = hex::decode(result[0].encrypt_master_key_2.clone()).expect("Problème lors de la convertion hex to byte");
+
+        let kdf_key = AesKey::new_decrypt(&kdf_client).expect("wrap kdf n'a pas focntionner");
+        let mut master_key_2 = [0u8; 64];
+        let _ = match unwrap_key(&kdf_key, None, &mut master_key_2, &master_key_2_encrypted){
+            Err(e)=> return Err(LoginState::InvalidPassword),
+            Ok(o)=>o
+        };
         /* Renvoyer le cookie JWT */
         let credentials = Credentials{id:result[0].id.clone(), kdf:hex::encode(kdf_client)};
         Ok(self.create_token(credentials))

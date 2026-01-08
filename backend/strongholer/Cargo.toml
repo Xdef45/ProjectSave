@@ -17,3 +17,4 @@ openssl = { version = "0.10", features = ["vendored"] }
 jsonwebtoken = { version = "10.2.0", features = ["aws_lc_rs"] }
 uuid = { version = "1.19.0", features = ["v4"] }
 hex = "0.4"
+subtle = "2.6.1"
