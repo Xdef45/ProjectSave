@@ -5,12 +5,24 @@ use uuid::Uuid;
 use openssl::rand::rand_bytes;
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
 use argon2::{Argon2, Params};
+use config;
 
 
 const MEMORY_COST: u32 = 64*1024;
 const ITERATION_COST: u32 = 3;
 const PARALLELISM_COST: u32 = 4;
 const HASH_LENGTH: usize = 32;
+
+
+
+#[derive(Debug, Deserialize)]
+struct DbSettings {
+    db_host: String,
+    db_port: u16,
+    db_user: String,
+    db_passord: String,
+    db: String
+}
 
 #[derive(Deserialize)]
 pub struct Login{
@@ -39,7 +51,16 @@ pub struct Auth;
 
 impl Auth {
     async fn db(&mut self) -> sqlx::MySqlConnection{
-        let opt = mysql::MySqlConnectOptions::new().host("127.0.0.1").password("mypass").port(3306).username("root").database("strongholder");
+        let db_setting: DbSettings = config::Config::builder()
+        .add_source(config::File::with_name(".env"))
+        .build()
+        .expect("La lecture du fichier .env a échoué").try_deserialize().expect("La déserialisation aéchoué");
+        let opt = mysql::MySqlConnectOptions::new()
+        .host(db_setting.db_host.as_str())
+        .password(db_setting.db_passord.as_str())
+        .port(db_setting.db_port)
+        .username(db_setting.db_user.as_str())
+        .database(db_setting.db.as_str());
         return mysql::MySqlConnection::connect_with(&opt).await.unwrap();
     }
     pub async fn signup(&mut self, login: Login) -> Result<String, LoginState> {
