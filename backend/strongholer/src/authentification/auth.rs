@@ -53,6 +53,7 @@ pub struct Auth;
 
 impl Auth {
     async fn db(&mut self) -> sqlx::MySqlConnection{
+        println!("Début connection");
         let db_setting: DbSettings = config::Config::builder()
         .add_source(config::File::with_name(".env.json"))
         .build()
@@ -63,6 +64,7 @@ impl Auth {
         .port(db_setting.db_port)
         .username(db_setting.db_user.as_str())
         .database(db_setting.db.as_str());
+        println!("Connecté");
         return mysql::MySqlConnection::connect_with(&opt).await.unwrap();
     }
     pub async fn signup(&mut self, login: Login) -> Result<String, LoginState> {

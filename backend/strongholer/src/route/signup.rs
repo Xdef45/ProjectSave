@@ -8,6 +8,7 @@ async fn signup(id: web::Json<Login>) -> HttpResponse{
         username: id.username.clone(), 
         password: id.password.clone()
     };
+    println!("Reçus");
     let token = Auth.signup(login).await.expect("Le token n'as pas pu se créer");
     let cookie = Cookie::build("Bearer", token)
     .path("/")
