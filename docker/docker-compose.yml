@@ -1,0 +1,48 @@
+services:
+  borg-server:
+    image: borg-server:latest
+    container_name: borg_server
+    ports:
+      - "2222:22"
+    volumes:
+      - SAVE FOLDER:/var/backups/borg
+      - AUTHORIZEDKEY HERE:/home/borg/.ssh/authorized_keys:ro
+    restart: unless-stopped
+    networks:
+      - backup_net
+
+  db:
+    image: mariadb:11
+    container_name: database
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MARIADB_USER: ${MYSQL_USER}
+      MARIADB_PASSWORD: ${MYSQL_PASSWORD}
+      MARIADB_DATABASE: ${MYSQL_DATABASE}
+    volumes:
+      - db_data:/var/lib/mysql 
+    networks:
+      - backend_net
+
+  web:
+    image: nginx:1.25-alpine
+    container_name: web_server
+    ports:
+      - "8080:80"
+    volumes:
+      - ./html:/usr/share/nginx/html:ro
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - backend_net
+
+volumes:
+  db_data: 
+
+networks:
+  backend_net:
+    driver: bridge
+  backup_net:
+    driver: bridge
