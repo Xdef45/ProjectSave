@@ -1,24 +1,21 @@
 services:
   borg-server:
-    image: borg-server:latest
+    build: "./alpine docker"
     container_name: borg_server
     ports:
       - "2222:22"
     volumes:
-      - SAVE FOLDER:/var/backups/borg
-      - AUTHORIZEDKEY HERE:/home/borg/.ssh/authorized_keys:ro
+      - SAVE_FOLDER:/var/backups/borg
     restart: unless-stopped
     networks:
       - backup_net
 
   db:
-    image: FROM mariadb:12.2-rc
+    image: mariadb:12.2-rc
     container_name: database
     restart: always
     environment:
       MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MARIADB_USER: ${MYSQL_USER}
-      MARIADB_PASSWORD: ${MYSQL_PASSWORD}
       MARIADB_DATABASE: ${MYSQL_DATABASE}
     volumes:
       - db_data:/var/lib/mysql 
@@ -27,10 +24,11 @@ services:
 
   api:
     build: ./api
+    container_name: api
     restart: always
     volumes:
-      - SAVE FOLDER:/var/backups/borg
-    port: 
+      - SAVE_FOLDER:/var/backups/borg
+    ports: 
       - "80:80"
     networks:
       - backend_net
@@ -51,6 +49,7 @@ services:
 
 volumes:
   db_data: 
+  SAVE_FOLDER:
 
 networks:
   backend_net:
