@@ -65,7 +65,8 @@ impl Auth {
         .username(db_setting.db_user.as_str())
         .database(db_setting.db.as_str());
         println!("Connecté");
-        return mysql::MySqlConnection::connect_with(&opt).await.unwrap();
+        return mysql::MySqlConnection::connect_with(&opt).await.expect("Impossible de se connecter à la DB");
+        println!("Connecté");
     }
     pub async fn signup(&mut self, login: Login) -> Result<String, LoginState> {
         /* Initialisation des paramètre de connection à la base de donnée */
