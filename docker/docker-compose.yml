@@ -25,11 +25,15 @@ services:
     networks:
       - backend_net
 
+  api:
+    build: ./api
+
+
   web:
     image: nginx:1.25-alpine
     container_name: web_server
     ports:
-      - "8080:80"
+      - "443:443"
     volumes:
       - ./html:/usr/share/nginx/html:ro
     depends_on:

@@ -28,7 +28,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_repot_key::get_repot_key)
         )
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", 80))?
     .run()
     .await
 }
