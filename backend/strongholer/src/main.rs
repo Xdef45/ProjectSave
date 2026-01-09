@@ -10,7 +10,7 @@ use crate::route::{signup, signin, get_repot_key, send_ssh_key};
 #[post("/imaconnected")]
 async fn imaconnected(req: HttpRequest) -> HttpResponse{
     if let Some(cookie) = req.cookie("Bearer"){
-        let _ = Auth.validation(cookie.value().to_string()).expect("Lors de la validation d'un cookie, une erreur est survenue");
+        let _ = Auth.validation(cookie.value().to_string()).await.expect("Lors de la validation d'un cookie, une erreur est survenue");
     }
     HttpResponse::Ok().finish()
 }

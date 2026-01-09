@@ -21,8 +21,10 @@ struct DbSettings {
     db_port: u16,
     db_user: String,
     db_password: String,
-    db: String
+    db: String,
+    jwt_secret: String
 }
+
 
 #[derive(Deserialize)]
 pub struct Login{
@@ -89,7 +91,7 @@ impl Auth {
         
         /* Renvoyer le cookie JWT */
         let credentials = Credentials{exp: get_current_timestamp(), id:uuid, kdf:hex::encode(kdf_client)};
-        Ok(self.create_token(credentials))
+        Ok(self.create_token(credentials).await)
     }
 
     pub fn create_master_key_2(&self, kdf_client:&[u8]) -> String{
@@ -136,14 +138,18 @@ impl Auth {
 
         /* Renvoyer le cookie JWT */
         let credentials = Credentials{exp: get_current_timestamp(), id:result[0].id.clone(), kdf:hex::encode(kdf_client)};
-        Ok(self.create_token(credentials))
+        Ok(self.create_token(credentials).await)
     }
 
     /* Vérifier token jwt */
-    pub fn validation(self,token_jwt: String)-> Result<bool, String>{
+    pub async fn validation(self,token_jwt: String)-> Result<bool, String>{
+        let jwt_token: DbSettings = config::Config::builder()
+        .add_source(config::File::with_name(".env.json"))
+        .build()
+        .expect("La lecture du fichier .env a échoué").try_deserialize().expect("La déserialisation aéchoué");
         let mut validation = Validation::new(Algorithm::HS384);
         validation.leeway=60*10;
-        match decode::<Credentials>(&token_jwt, &DecodingKey::from_secret("secret".as_ref()), &validation){
+        match decode::<Credentials>(&token_jwt, &DecodingKey::from_secret(jwt_token.jwt_secret.as_bytes()), &validation){
             Err(e)=> {
                 if true{
                     return Err(e.to_string())
@@ -159,9 +165,15 @@ impl Auth {
 
     }
 
-    fn create_token(&self, credentials: Credentials) -> String{
+    async fn create_token(&self, credentials: Credentials) -> String{
+        /* Récupère la variable d'environnement */
+        let jwt_token: DbSettings = config::Config::builder()
+        .add_source(config::File::with_name(".env.json"))
+        .build()
+        .expect("La lecture du fichier .env a échoué").try_deserialize().expect("La déserialisation aéchoué");
+
         let header = Header::new(Algorithm::HS384);
-        let token = match encode(&header, &credentials, &EncodingKey::from_secret("secret".as_ref())){
+        let token = match encode(&header, &credentials, &EncodingKey::from_secret(jwt_token.jwt_secret.as_bytes())){
             Ok(token) => token,
             Err(_)=> "erreur".to_string()
         };
