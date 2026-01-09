@@ -14,7 +14,7 @@ openssl = { version = "0.10", features = ["vendored"] }
 jsonwebtoken = { version = "10.2.0", features = ["aws_lc_rs"] }
 uuid = { version = "1.19.0", features = ["v4"] }
 hex = "0.4"
-async-std = { version = "1.13.2", features = ["attributes"] }
+async-std = { version = "1.13.2", features = ["attributes", "unstable"] }
 actix-multipart = "0.7.2"
 actix-files = "0.6"
 config = "0.15.19"

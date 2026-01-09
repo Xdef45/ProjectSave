@@ -32,10 +32,10 @@ pub struct Login{
     pub password: String
 }
 #[derive(Debug, Serialize, Deserialize)]
-struct Credentials{
-    exp: u64,
-    id: String,
-    kdf: String
+pub struct Credentials{
+    pub exp: u64,
+    pub id: String,
+    pub kdf: String
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub enum LoginState{
@@ -142,7 +142,7 @@ impl Auth {
     }
 
     /* Vérifier token jwt */
-    pub async fn validation(self,token_jwt: String)-> Result<bool, String>{
+    pub async fn validation(self,token_jwt: String)-> Result<Credentials, String>{
         let jwt_token: DbSettings = config::Config::builder()
         .add_source(config::File::with_name(".env.json"))
         .build()
@@ -150,17 +150,8 @@ impl Auth {
         let mut validation = Validation::new(Algorithm::HS384);
         validation.leeway=60*10;
         match decode::<Credentials>(&token_jwt, &DecodingKey::from_secret(jwt_token.jwt_secret.as_bytes()), &validation){
-            Err(e)=> {
-                if true{
-                    return Err(e.to_string())
-                }else{
-                    return Ok(false)
-                }
-            },
-            Ok(o)=> {
-                println!("{:?}", o.claims.kdf);
-                return Ok(true)
-            }
+            Err(_)=> return Err("Cookie expirer".to_string()),
+            Ok(o)=> return Ok(o.claims)
         };
 
     }
