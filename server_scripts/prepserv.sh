@@ -1,77 +1,155 @@
 #!/bin/bash
+set -euo pipefail
 
-#/usr/local/sbin/prepareserv.sh
+echo "[prepareserv] Installing required packages"
 
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq
+apt-get install -y --no-install-recommends \
+  borgbackup \
+  gpg \
+  openssh-server \
+  util-linux \
+  ca-certificates
+
+# === Config ===
 BACKUP_USER="backup"
 BACKUP_HOME="/srv/repos"
-GNUPG_DIR="${BACKUP_HOME}/.gnupg"
+
+TUNNEL_USER="tunnel"
+TUNNEL_HOME="/home/tunnel"
 
 SECRET_DIR="/etc/backup_secrets"
-SECRET_FILE="${SECRET_DIR}/key.pass"
 SECRET_GROUP="backupsecrets"
+SECRET_FILE="${SECRET_DIR}/key.pass"
 
-sudo mkdir -p /srv/clients
-sudo chown -R www-data:www-data /srv/clients
-sudo chmod 700 /srv/clients
+SERVER_KEYS_DIR="/etc/backup_server_keys"   # plus clair que /etc/.ssh
+SERVER_TO_CLIENT_KEY="${SERVER_KEYS_DIR}/server_to_client_ed25519"
 
+TUNNEL_STATE_DIR="/var/lib/tunnel"          # utilisé par alloc_reverse_port.sh
 
-#on crée le user backup
+SUDOERS_TUNNEL="/etc/sudoers.d/tunnel-backup"
+
+# Scripts que tunnel a le droit d'exécuter en sudo (strict)
+ALLOC_SCRIPT="/usr/local/sbin/alloc_reverse_port.sh"
+PREPAREDECRYPT_SCRIPT="/usr/local/sbin/preparedecrypt.sh"
+CLEANUP_SCRIPT="/usr/local/sbin/server_cleanup_key.sh"
+
+# === Helpers ===
+need_root() { [ "$(id -u)" -eq 0 ] || { echo "Run as root." >&2; exit 1; }; }
+pkg_install() {
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -y
+  apt-get install -y --no-install-recommends \
+    openssh-server openssh-client \
+    borgbackup \
+    gpg \
+    acl \
+    rsync \
+    ca-certificates \
+    util-linux
+}
+
+need_root
+
+echo "[prepareserv] Installing packages"
+pkg_install
+
+echo "[prepareserv] Ensure /usr/local/sbin exists"
+install -d -o root -g root -m 0755 /usr/local/sbin
+
+# === Users ===
+echo "[prepareserv] Ensure users"
 if ! id "${BACKUP_USER}" >/dev/null 2>&1; then
-  useradd -d "${BACKUP_HOME}" -m "${BACKUP_USER}"
+  useradd -d "${BACKUP_HOME}" -m -s /usr/sbin/nologin "${BACKUP_USER}"
 fi
 
+if ! id "${TUNNEL_USER}" >/dev/null 2>&1; then
+  useradd -d "${TUNNEL_HOME}" -m -s /usr/sbin/nologin "${TUNNEL_USER}"
+fi
 
-mkdir -p "${BACKUP_HOME}"
-chown "${BACKUP_USER}:${BACKUP_USER}" "${BACKUP_HOME}"
-chmod 750 "${BACKUP_HOME}"
+# === Repos root dir ===
+echo "[prepareserv] Prepare ${BACKUP_HOME} and permissions"
+install -d -o "${BACKUP_USER}" -g "${BACKUP_USER}" -m 0750 "${BACKUP_HOME}"
 
+# IMPORTANT: permettre aux users borg_* de traverser /srv/repos (sinon authorized_keys ignoré)
+# -> on donne juste "x" aux autres, pas "r"
+chmod o+x "${BACKUP_HOME}"
 
-sudo -u "${BACKUP_USER}" mkdir -p "${GNUPG_DIR}"
-sudo -u "${BACKUP_USER}" chmod 700 "${GNUPG_DIR}"
-
-
+# === Secrets ===
+echo "[prepareserv] Prepare secrets dir ${SECRET_DIR}"
 groupadd -f "${SECRET_GROUP}"
+
+# backup et tunnel peuvent lire les secrets (si besoin)
 usermod -aG "${SECRET_GROUP}" "${BACKUP_USER}"
+usermod -aG "${SECRET_GROUP}" "${TUNNEL_USER}"
 
-install -d -m 750 -o root -g "${SECRET_GROUP}" "${SECRET_DIR}"
+install -d -m 0750 -o root -g "${SECRET_GROUP}" "${SECRET_DIR}"
 
-if [ ! -f "${SECRET_FILE}" ]; then
-  umask 077
-  openssl rand -base64 48 > "${SECRET_FILE}"
+# IMPORTANT: on ne crée PAS automatiquement key.pass ici (tu peux le faire manuellement)
+# Mais on impose les perms si le fichier existe
+if [ -f "${SECRET_FILE}" ]; then
+  chown root:"${SECRET_GROUP}" "${SECRET_FILE}"
+  chmod 0640 "${SECRET_FILE}"
 fi
 
-chown root:"${SECRET_GROUP}" "${SECRET_FILE}"
-chmod 640 "${SECRET_FILE}"
+# === State dir for ports ===
+echo "[prepareserv] Prepare tunnel state dir ${TUNNEL_STATE_DIR}"
+install -d -m 0700 -o root -g root "${TUNNEL_STATE_DIR}"
+install -d -m 0700 -o root -g root "${TUNNEL_STATE_DIR}/locks"
+install -d -m 0700 -o root -g root "${TUNNEL_STATE_DIR}/clients"
 
-echo "OK: user=${BACKUP_USER}, gnupg=${GNUPG_DIR}, secret=${SECRET_FILE}"
+# === Temp dir for borg key decrypt (used by preparedecrypt.sh) ===
+echo "[prepareserv] Prepare /run/borgkey"
+install -d -m 0700 -o root -g root /run/borgkey
 
-#user tunnel
-sudo useradd -m -s /bin/bash tunnel
-sudo mkdir -p /home/tunnel/.ssh
-sudo chmod 700 /home/tunnel/.ssh
-sudo touch /home/tunnel/.ssh/authorized_keys
-sudo chmod 600 /home/tunnel/.ssh/authorized_keys
-sudo chown -R tunnel:tunnel /home/tunnel/.ssh
+# === Server->Client SSH key ===
+echo "[prepareserv] Prepare server->client SSH key in ${SERVER_KEYS_DIR}"
+install -d -m 0700 -o root -g root "${SERVER_KEYS_DIR}"
 
-sudo apt install -y acl
-sudo setfacl -m u:www-data:x /home/tunnel
-sudo setfacl -m u:www-data:rx /home/tunnel/.ssh
-sudo setfacl -m u:www-data:rw /home/tunnel/.ssh/authorized_keys
+if [ ! -f "${SERVER_TO_CLIENT_KEY}" ]; then
+  ssh-keygen -t ed25519 -a 64 -f "${SERVER_TO_CLIENT_KEY}" -N "" -C "server_to_client"
+  chmod 0600 "${SERVER_TO_CLIENT_KEY}"
+  chmod 0644 "${SERVER_TO_CLIENT_KEY}.pub"
+fi
 
+# Installer la clé dans le home du user tunnel (celle utilisée par preparedecrypt.sh)
+echo "[prepareserv] Install server->client key into ${TUNNEL_HOME}/.ssh"
+install -d -m 0700 -o "${TUNNEL_USER}" -g "${TUNNEL_USER}" "${TUNNEL_HOME}/.ssh"
+install -m 0600 -o "${TUNNEL_USER}" -g "${TUNNEL_USER}" "${SERVER_TO_CLIENT_KEY}" "${TUNNEL_HOME}/.ssh/server_to_client_ed25519"
+install -m 0644 -o "${TUNNEL_USER}" -g "${TUNNEL_USER}" "${SERVER_TO_CLIENT_KEY}.pub" "${TUNNEL_HOME}/.ssh/server_to_client_ed25519.pub"
 
+# === Sudoers (tunnel) ===
+echo "[prepareserv] Configure sudoers for ${TUNNEL_USER} (restricted)"
+# Vérif que les scripts existent (sinon on te le dit tout de suite)
+for s in "$ALLOC_SCRIPT" "$PREPAREDECRYPT_SCRIPT" "$CLEANUP_SCRIPT"; do
+  if [ ! -x "$s" ]; then
+    echo "[prepareserv] WARNING: $s missing or not executable (install_all.sh should have copied it)" >&2
+  fi
+done
 
-# sudo -u backup mkdir -p /srv/repos/.gnupg
-# sudo -u backup chmod 700 /srv/repos/.gnupg
+cat > "${SUDOERS_TUNNEL}" <<EOF
+# Allow tunnel user to run only specific maintenance scripts without password
+${TUNNEL_USER} ALL=(root) NOPASSWD: ${ALLOC_SCRIPT}, ${PREPAREDECRYPT_SCRIPT}, ${CLEANUP_SCRIPT}
+EOF
+chmod 0440 "${SUDOERS_TUNNEL}"
 
-# sudo install -d -m 700 /etc/backup_secrets
-# sudo sh -c 'openssl rand -base64 48 > /etc/backup_secrets/client_test.pass'
-# sudo chmod 600 /etc/backup_secrets/client_test.pass
-# sudo chown root:root /etc/backup_secrets/client_test.pass
+# === SSH hardening baseline for tunnel usage (optionnel mais cohérent) ===
+# On évite de casser ton sshd_config existant, on ajoute un drop-in.
+echo "[prepareserv] Ensure sshd drop-in for forwarding exists"
+install -d -m 0755 /etc/ssh/sshd_config.d
 
+cat > /etc/ssh/sshd_config.d/50-backup-tunnel.conf <<'EOF'
+# Backup tunnel baseline
+AllowTcpForwarding yes
+GatewayPorts no
+X11Forwarding no
+PermitTunnel no
+EOF
 
-# sudo groupadd -f backupsecrets
-# sudo usermod -aG backupsecrets backup
+systemctl reload ssh || systemctl reload sshd || true
 
-# sudo chown root:backupsecrets /etc/backup_secrets/client_test.pass
-# sudo chmod 640 /etc/backup_secrets/client_test.pass
-# sudo chmod 750 /etc/backup_secrets
+echo
+echo "OK: backup_user=${BACKUP_USER}, repos=${BACKUP_HOME}, secrets=${SECRET_DIR}, server_keys=${SERVER_KEYS_DIR}"
+echo "Server->client pubkey (à mettre côté client dans authorized_keys borghelper):"
+cat "${SERVER_TO_CLIENT_KEY}.pub"

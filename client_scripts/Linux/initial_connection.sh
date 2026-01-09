@@ -5,7 +5,7 @@ CLIENT_NAME="${1:?usage: $0 CLIENT_NAME}"
 
 SSH_PUB_KEY="$(cat ~/.ssh/tunnel_key.pub)"
 
-# 1) Enregistrement de la clé tunnel
+# 1) save de la clé tunnel
 curl -sS -f -X POST "http://api.test/v1/clients/register-tunnel-key" \
   -H "Content-Type: application/json" \
   -d "$(jq -n \
@@ -14,7 +14,7 @@ curl -sS -f -X POST "http://api.test/v1/clients/register-tunnel-key" \
         '{client_id:$client_id, ssh_public_key:$ssh_public_key}')" \
   >/dev/null
 
-# 2) First connect
+# 2) 1st connect
 curl -sS -f -X POST "http://api.test/v1/clients/first-connect" \
   -H "Content-Type: application/json" \
   -d "$(jq -n \
@@ -22,7 +22,7 @@ curl -sS -f -X POST "http://api.test/v1/clients/first-connect" \
         '{client_id:$client_id}')" \
   > resp.json
 
-# 3) Récupération des artefacts (fail si champs manquants)
+# 3) récup des items
 jq -er '.borg_keyfile_gpg_b64' resp.json | base64 -d > borg_keyfile.gpg
 chmod 600 borg_keyfile.gpg
 

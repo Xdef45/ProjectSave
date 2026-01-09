@@ -1,101 +1,83 @@
 #!/bin/bash
+set -euo pipefail
 
-#/usr/local/sbin/create_user.sh
+CLIENT="${1:?Usage: $0 CLIENT}"
 
-#usage: Usage: $0 CLIENT_NAME
-
-# on check que la commande a bien été écrite
-if [ -z "$1" ]; then
-    echo "Usage: $0 CLIENT_NAME"
-    exit 1
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Run as root." >&2
+  exit 1
 fi
 
-# must be root
-if [ "$EUID" -ne 0 ]; then
-    echo "Ce script doit être exécuté en root ( ou root SSH)."
-    exit 1
+# --- Global paths / prerequisites (prepared by prepserv.sh) ---
+SECRET_FILE="/etc/backup_secrets/key.pass"
+TMPBASE="/run/borgkey"
+TUNNEL_STATE_BASE="/var/lib/tunnel/clients"
+
+[ -s "$SECRET_FILE" ] || { echo "missing/empty $SECRET_FILE (create it first)"; exit 1; }
+[ -d "$TMPBASE" ] || { echo "missing $TMPBASE (prepserv.sh must create it)"; exit 1; }
+[ -d "$TUNNEL_STATE_BASE" ] || { echo "missing $TUNNEL_STATE_BASE (prepserv.sh must create it)"; exit 1; }
+
+# --- Per-client server layout ---
+BORG_USER="borg_${CLIENT}"
+HOME_DIR="/srv/repos/${CLIENT}"
+REPO_DIR="${HOME_DIR}/repo"
+BOOTSTRAP_DIR="${HOME_DIR}/bootstrap"
+KEY_GPG="${BOOTSTRAP_DIR}/${CLIENT}.gpg"
+
+# temp key export (server-side, short-lived)
+KEY_TMP_CLEAR="${TMPBASE}/${CLIENT}.key"
+
+# --- Create borg user (no interactive login) ---
+if ! id -u "$BORG_USER" >/dev/null 2>&1; then
+  # -M: do not auto-create home (we create with correct perms ourselves)
+  useradd -M -d "$HOME_DIR" -s /usr/sbin/nologin "$BORG_USER"
+fi
+
+# Ensure home + repo dirs with strict perms
+install -d -o "$BORG_USER" -g "$BORG_USER" -m 0700 "$HOME_DIR"
+install -d -o "$BORG_USER" -g "$BORG_USER" -m 0700 "$REPO_DIR"
+install -d -o "$BORG_USER" -g "$BORG_USER" -m 0700 "$BOOTSTRAP_DIR"
+
+# Make sure alloc_reverse_port.sh never needs mkdir
+install -d -o root -g root -m 0700 "${TUNNEL_STATE_BASE}/${CLIENT}"
+
+# --- Init borg repo if needed ---
+# We use keyfile encryption with EMPTY passphrase (so borg doesn't prompt).
+# The protection is your .gpg wrapping + short-lived plaintext on client during backup.
+if [ ! -f "${REPO_DIR}/config" ]; then
+  sudo -u "$BORG_USER" env HOME="$HOME_DIR" BORG_PASSCOMMAND="printf ''" \
+    borg init -e keyfile "$REPO_DIR"
 fi
 
 
+KEY_CLEAR="${BOOTSTRAP_DIR}/${CLIENT}.key"
+KEY_GPG="${BOOTSTRAP_DIR}/${CLIENT}.gpg"
 
-BORG_USER="backup"
-CLIENT_NAME=$1 # logique lol
-BASE_DIR="/srv/repos/$CLIENT_NAME" #director assigné au client (il pourra pas use autre chose que ça)
-SAVES_DIR="$BASE_DIR/saves"
-LOGS_DIR="$BASE_DIR/logs" # les logs de la sauvegarde (taille, heure de save et tt)
-BORG_BASE_DIR="$BASE_DIR"
-export HOME="/srv/repos"
-export GNUPGHOME="$HOME/.gnupg"
-umask 077
+# export keyfile clair (écrit par le user, donc OK)
+sudo -u "$BORG_USER" env HOME="$HOME_DIR" \
+  borg key export "$REPO_DIR" "$KEY_CLEAR"
 
-KEY_GPG="/srv/repos/$1/.config/borg/keys/$1.gpg"
-KEY_CLR="/srv/repos/$1/.config/borg/keys/srv_repos_"$1"_saves_$1"
-
-# 2. on crée le répertoire pr le client
-echo "Création des dossiers pour le client $CLIENT_NAME..."
-#  mkdir -p   "$SAVES_DIR"\
-#             "$LOGS_DIR"\
-#             # "$CLIENT_SSH_DIR"
-install -d -o "$BORG_USER" -g "$BORG_USER" -m 0750 "$SAVES_DIR"
-install -d -o "$BORG_USER" -g "$BORG_USER" -m 0700 "$BORG_BASE_DIR"
-install -d -o root -g root -m 0755 "/mnt/$CLIENT_NAME"
-
-
-
-
-# 7 on crée le repo borg :D
-
-export BORG_PASSCOMMAND="printf ''" # on mets une passphrase vide 
-export GPG_PASSPHRASE="$(< /etc/backup_secrets/key.pass)"
-
-sudo -u "$BORG_USER" env \
-    HOME="$BASE_DIR" \
-    BORG_BASE_DIR="$BORG_BASE_DIR" \
-    BORG_PASSCOMMAND="printf ''"\
-    borg init -e keyfile $SAVES_DIR/$CLIENT_NAME 
-
-# ln -s $BORG_BASE_DIR/.config/borg/keys/srv_repos_"$CLIENT_NAME"_saves_"$CLIENT_NAME" $BORG_BASE_DIR/.config/borg/keys/$CLIENT_NAME
-
+# chiffrer avec la passphrase serveur
 gpg --batch --yes --pinentry-mode loopback \
-    --passphrase "$GPG_PASSPHRASE" \
-    --output "$KEY_GPG" \
-    --symmetric "$KEY_CLR" || exit
+  --passphrase-file "$SECRET_FILE" \
+  --output "$KEY_GPG" \
+  --symmetric "$KEY_CLEAR"
 
-sudo chown backup:backup /srv/repos/$CLIENT_NAME/.config/borg/keys/$CLIENT_NAME.gpg
-sudo chmod 600 /srv/repos/$CLIENT_NAME/.config/borg/keys/$CLIENT_NAME.gpg
+chown root:backupsecrets "$KEY_GPG"
+chmod 0640 "$KEY_GPG"
 
-chown -R backup:backup "/srv/repos/$CLIENT_NAME"
-chmod 750 "/srv/repos/$CLIENT_NAME"
-chmod 700 "/srv/repos/$CLIENT_NAME/.config"
-chmod 700 "/srv/repos/$CLIENT_NAME/.config/borg"
-chmod 700 "/srv/repos/$CLIENT_NAME/.config/borg/keys"
-chmod 600 "/srv/repos/$CLIENT_NAME/.config/borg/keys/"*
+# supprimer le clair
+shred -u "$KEY_CLEAR" 2>/dev/null || rm -f "$KEY_CLEAR"
 
 
-sudo mkdir -p "/srv/clients/$CLIENT_NAME"
+# Lock down bootstrap file readability (tunnel user is in backupsecrets group via prepserv)
+chown root:backupsecrets "$KEY_GPG"
+chmod 0640 "$KEY_GPG"
 
-sudo touch /srv/clients/$CLIENT_NAME/tunnel_port.txt
-sudo chown www-data:www-data /srv/clients/$CLIENT_NAME/tunnel_port.txt
-sudo chmod 600 /srv/clients/$CLIENT_NAME/tunnel_port.txt
+# --- Prepare SSH skeleton for install_client_key.sh (no mkdir elsewhere) ---
+install -d -o "$BORG_USER" -g "$BORG_USER" -m 0700 "$HOME_DIR/.ssh"
+install -o "$BORG_USER" -g "$BORG_USER" -m 0600 /dev/null "$HOME_DIR/.ssh/authorized_keys"
 
-ssh-keygen -t ed25519 -f "/srv/clients/$CLIENT_NAME/${CLIENT_NAME}_access_key" -N "" -C "${CLIENT_NAME}_access"
-
-sudo cp "/srv/repos/$CLIENT_NAME/.config/borg/keys/$CLIENT_NAME.gpg" "/srv/clients/$CLIENT_NAME/$CLIENT_NAME.gpg"
-
-# dossier
-sudo chown root:www-data "/srv/clients/$CLIENT_NAME"
-sudo chmod 750 "/srv/clients/$CLIENT_NAME"
-
-# clé privée (root only)
-sudo chown root:root "/srv/clients/$CLIENT_NAME/${CLIENT_NAME}_access_key"
-sudo chmod 600 "/srv/clients/$CLIENT_NAME/${CLIENT_NAME}_access_key"
-
-# clé publique + gpg (lisibles par l'API)
-sudo chown root:www-data "/srv/clients/$CLIENT_NAME/${CLIENT_NAME}_access_key.pub"
-sudo chmod 640 "/srv/clients/$CLIENT_NAME/${CLIENT_NAME}_access_key.pub"
-
-sudo chown root:www-data "/srv/clients/$CLIENT_NAME/$CLIENT_NAME.gpg"
-sudo chmod 640 "/srv/clients/$CLIENT_NAME/$CLIENT_NAME.gpg"
-
-
-
+echo "OK created/updated: user=$BORG_USER home=$HOME_DIR repo=$REPO_DIR"
+echo "Bootstrap key (encrypted): $KEY_GPG"
+echo "Next: run install_client_key.sh to allow borg serve access for this client."

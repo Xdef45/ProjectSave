@@ -1,27 +1,31 @@
 ## Uuuh ptite explications sur les scripts Linux client
 
-g rien à dire enft 😭
+On rentre dans le folder avec tout les scripts  
 
-g testé tt ça que sur ubuntu, on verra pr le reste j'ai déjà dépassé la deadline tutur va me tuer.
+1. **Installation des scripts**  
+```sudo ./install_all_client.sh```
 
-je vais add sur notion tt ce qu'il me manque à faire
+2. something will be here
+    ```
+    sudo tee /home/borghelper/.ssh/authorized_keys >/dev/null <<'EOF'
+    command="/usr/local/sbin/borghelper_dispatch.sh",no-pty,no-agent-forwarding,no-X11-forwarding,no-port-forwarding <server_to_client_pubkey> server_to_client
+    EOF
+    sudo chown borghelper:borghelper /home/borghelper/.ssh/authorized_keys
+    sudo chmod 600 /home/borghelper/.ssh/authorized_keys
+    ```
 
-y'a quelques trucs qui seront pas commentés chui fatigué
+3. **Génération des clés client**  
+```sudo /usr/local/sbin/client_genkey.sh <client_name>```
 
-Pour l'ordre d'une sauvegarde type
+4. **Envoi des clés publiques à l'api**
 
-create_user.sh
+5. **Récupération de la clé .gpg**  
+Pour l'instant j'ai ça (test)  
+```sudo /usr/local/sbin/client_fetch_bootstrap_key.sh```  
 
-initial_connection.sh
+6. **Lancer la save**  
+```/usr/local/sbin/client_backup.sh <client> <path_to_save>```
 
-open_tunnel.sh
-
-save.sh
-
-Ce qu'il manque
-
-- L'indexation de l'arborescence des sauvegardes 
-- Il faut que je revois les permissions
-- Il faut que je fasses en sorte que le tunnel se ferme (des deux côtés lors de la sauvegarde)
-- Le système du client qui envoie sa clé borg n'a pas encore été implémenté, pour l'instant la clé gpg est chiffrée dans le /keys des repo borgs
-- Maybe something else but idk rn
+Features manquantes qui seront possibles avec l'api
+- Listing des fichiers dans les archives
+- restauration des saves
