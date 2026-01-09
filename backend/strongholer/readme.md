@@ -13,9 +13,9 @@ Après le phase de compilation, le binaire est créer dans target/debug/strongho
     "db_host":"<HOST>",
     "db_port":"<PORT>",
     "db_user":"<USERNAME>",
-    "db_password":"<PASSWORD>"",
-    "db":"<DATABASE_NAME>"",
-    "JWT_secret": "<secret>"
+    "db_password":"<PASSWORD>",
+    "db":"<DATABASE_NAME>",
+    "jwt_secret": "<secret>"
 }
 ```
 Puis ```./strongholder```

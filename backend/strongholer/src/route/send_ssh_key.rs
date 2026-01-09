@@ -5,7 +5,7 @@ use actix_multipart::Multipart;
 
 const MAX_FILE_SIZE_SSH_KEY: usize = 50 * 1024 * 1024;
 
-#[post("sendsshkey")]
+#[post("send_ssh_key")]
 async fn send_ssh_key(mut payload: Multipart)->HttpResponse{
      while let Some(field) = payload.next().await {
         let mut field = field.expect("field invalide");
