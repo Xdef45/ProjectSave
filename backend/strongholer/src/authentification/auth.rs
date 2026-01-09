@@ -1,10 +1,16 @@
 use sqlx::{mysql, Connection};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
-use crate::kdfpassword::create_kdf;
 use uuid::Uuid;
 use openssl::rand::rand_bytes;
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
+use argon2::{Argon2, Params};
+
+
+const MEMORY_COST: u32 = 64*1024;
+const ITERATION_COST: u32 = 3;
+const PARALLELISM_COST: u32 = 4;
+const HASH_LENGTH: usize = 32;
 
 #[derive(Deserialize)]
 pub struct Login{
@@ -48,7 +54,7 @@ impl Auth {
         }
 
         /* Ajout de l'utilisateur à la base de donnée */
-        let kdf_client:[u8; 32]  = create_kdf(&login.password, &login.username).await;
+        let kdf_client:[u8; 32]  = self.create_kdf(&login.password, &login.username).await;
         let uuid = Uuid::new_v4().hyphenated().to_string();
 
         let key_encrypted = self.create_master_key_2(&kdf_client);
@@ -64,8 +70,6 @@ impl Auth {
         let credentials = Credentials{exp: get_current_timestamp(), id:uuid, kdf:hex::encode(kdf_client)};
         Ok(self.create_token(credentials))
     }
-
-
 
     pub fn create_master_key_2(&self, kdf_client:&[u8]) -> String{
         /* Création clé_master */
@@ -96,7 +100,7 @@ impl Auth {
         }
 
         /* Création de la clé dériver */
-        let kdf_client:[u8; 32]  = create_kdf(&login.password, &login.username).await;
+        let kdf_client:[u8; 32]  = self.create_kdf(&login.password, &login.username).await;
 
         /* Convertion hex to bytes */
         let master_key_2_encrypted = hex::decode(result[0].encrypt_master_key_2.clone()).expect("Problème lors de la convertion hex to byte");
@@ -141,5 +145,15 @@ impl Auth {
             Err(_)=> "erreur".to_string()
         };
         token
+    }
+
+    async fn create_kdf(&self, password: &String, salt: &String) -> [u8; HASH_LENGTH]{
+        let output_len: Option<usize> = Some(HASH_LENGTH);
+        let param: Params= argon2::Params::new(MEMORY_COST, ITERATION_COST, PARALLELISM_COST, output_len).expect("problème");
+        let password = password.as_bytes();
+        let salt = salt.as_bytes();
+        let mut out= [0u8; HASH_LENGTH];
+        let _ = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, param).hash_password_into(password, salt, &mut out);
+        return out;
     }
 }
