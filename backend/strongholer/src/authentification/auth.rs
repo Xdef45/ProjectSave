@@ -66,12 +66,11 @@ impl Auth {
         .database(db_setting.db.as_str());
         println!("Connecté");
         return mysql::MySqlConnection::connect_with(&opt).await.expect("Impossible de se connecter à la DB");
-        println!("Connecté");
     }
     pub async fn signup(&mut self, login: Login) -> Result<String, LoginState> {
         /* Initialisation des paramètre de connection à la base de donnée */
         let mut connection = self.db().await;
-
+        println!("Connecté");
         /* Vérification si l'utilisateur existe */
         let query = sqlx::query("SELECT username FROM Credentials WHERE username=?").bind(login.username.as_str());
         let number_return_line: Vec<mysql::MySqlRow> = query.fetch_all(&mut connection).await.expect("Une erreur c'est produite");
