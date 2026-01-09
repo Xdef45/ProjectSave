@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Paramètres</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h3>MyBackup</h3>
+        </div>
+        <nav class="sidebar-nav"><a href="dashboard.html" class="nav-item">Retour Dashboard</a></nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-bar">
+            <h2>Paramètres</h2>
+            <div class="right-section">
+                <button class="btn-login" style="padding: 8px 15px; width:auto;"
+                    onclick="window.history.back()">Appliquer et Retour</button>
+            </div>
+        </header>
+
+        <div class="dashboard-wrapper">
+            <div class="settings-container">
+                <div class="settings-sidebar">
+                    <button class="settings-tab active" onclick="openTab('apparence')">Apparence & Interface</button>
+                    <button class="settings-tab" onclick="openTab('source')">Dossier Source</button>
+                    <button class="settings-tab" onclick="openTab('performances')">Performances</button>
+                    <button class="settings-tab" onclick="openTab('planification')">Planification</button>
+                    <button class="settings-tab" onclick="openTab('notifications')">Notifications</button>
+                </div>
+
+                <div class="settings-content">
+
+                    <div id="apparence" class="tab-content active">
+                        <h3>Apparence & Interface</h3>
+                        <div class="form-group">
+                            <label>Thème</label>
+                            <select class="form-control">
+                                <option>Automatique (Système)</option>
+                                <option>Clair</option>
+                                <option>Sombre</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Taille du texte</label>
+                            <select class="form-control">
+                                <option>Petite</option>
+                                <option selected>Moyenne</option>
+                                <option>Grande</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Langue</label>
+                            <select class="form-control">
+                                <option>Français</option>
+                                <option>Anglais</option>
+                                <option>Espagnol</option>
+                                <option>Allemand</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>Notifications de bureau</label>
+                            <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                        </div>
+                    </div>
+
+                    <div id="source" class="tab-content">
+                        <h3>Dossier Source</h3>
+                        <div class="form-group">
+                            <label>Chemin du dossier par défaut</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" class="form-control" value="C:/Users/Client/Documents">
+                                <button class="btn-action secondary" style="width:auto;">...</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Extensions à ignorer (séparées par des virgules)</label>
+                            <input type="text" class="form-control" placeholder="ex: .tmp, .log, .iso">
+                        </div>
+                        <div class="form-group">
+                            <label>Sous-dossiers à exclure</label>
+                            <textarea class="form-control" rows="3" placeholder="Un par ligne..."></textarea>
+                        </div>
+                    </div>
+
+                    <div id="performances" class="tab-content">
+                        <h3>Performances & Réseau</h3>
+                        <div class="form-group">
+                            <label>Limite bande passante Upload</label>
+                            <input type="range" min="1" max="100" value="50" style="width:100%">
+                            <div
+                                style="display:flex; justify-content:space-between; color:var(--text-muted); font-size:0.8rem;">
+                                <span>1 Mbps</span><span>Illimité</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="planification" class="tab-content">
+                        <h3>Planification (Local)</h3>
+                        <div class="form-row">
+                            <label>Lancer au démarrage du système</label>
+                            <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                        </div>
+                        <div class="form-group">
+                            <label>Fréquence de sauvegarde automatique</label>
+                            <select class="form-control">
+                                <option>Jamais (Manuel)</option>
+                                <option>Toutes les heures</option>
+                                <option selected>Quotidienne</option>
+                                <option>Hebdomadaire</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="notifications" class="tab-content">
+                        <h3>Notifications & Alertes</h3>
+                        <div class="form-row">
+                            <label>Notification : Sauvegarde réussie</label>
+                            <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                        </div>
+                        <div class="form-row">
+                            <label>Notification : Échec de sauvegarde</label>
+                            <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                        </div>
+                        <div class="form-row">
+                            <label>Mode silencieux</label>
+                            <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function openTab(tabName) {
+            // Cacher tous les contenus
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            // Désactiver tous les boutons
+            document.querySelectorAll('.settings-tab').forEach(el => el.classList.remove('active'));
+
+            // Activer la cible
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+
+</html>
