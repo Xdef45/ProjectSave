@@ -20,7 +20,7 @@ struct DbSettings {
     db_host: String,
     db_port: u16,
     db_user: String,
-    db_passord: String,
+    db_password: String,
     db: String
 }
 
@@ -52,12 +52,12 @@ pub struct Auth;
 impl Auth {
     async fn db(&mut self) -> sqlx::MySqlConnection{
         let db_setting: DbSettings = config::Config::builder()
-        .add_source(config::File::with_name(".env"))
+        .add_source(config::File::with_name(".env.json"))
         .build()
         .expect("La lecture du fichier .env a échoué").try_deserialize().expect("La déserialisation aéchoué");
         let opt = mysql::MySqlConnectOptions::new()
         .host(db_setting.db_host.as_str())
-        .password(db_setting.db_passord.as_str())
+        .password(db_setting.db_password.as_str())
         .port(db_setting.db_port)
         .username(db_setting.db_user.as_str())
         .database(db_setting.db.as_str());
