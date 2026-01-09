@@ -1,0 +1,33 @@
+{
+  "name": "strongholder",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/main.js",
+  "bin": "setup.js",
+  "scripts": {
+    "start": "electron .",
+    "setup": "node setup.js",
+    "build-app": "electron-builder --win portable --linux AppImage --config.directories.output=dist_app",
+    "build-installer": "pkg . --targets node18-win-x64,node18-linux-x64 --out-path release --public"
+  },
+  "pkg": {
+    "assets": [
+      "scripts/**/*",
+      "dist_app/**/*",
+      "dist_app/win-unpacked/**/*",
+      "dist_app/linux-unpacked/**/*"
+    ],
+    "outputPath": "release"
+  },
+  "build": {
+    "productName": "Strongholder",
+    "appId": "com.strongholder.app"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^39.2.4",
+    "electron-builder": "^26.4.0",
+    "pkg": "^5.8.1"
+  }
+}

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion Sécurisée</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="login-card">
+            <div class="header">
+                <h2>Bienvenue sur <strong>StrongHolder</strong></h2>
+                <p>Veuillez vous identifier</p>
+            </div>
+
+            <form action="loader.html">
+                <div class="input-group">
+                    <label for="username">Identifiant</label>
+                    <input type="text" id="username" name="username" placeholder="ex: utilisateur" required>
+                </div>
+
+                <div class="input-group relative-parent">
+                    <label for="password">Mot de passe</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required
+                        autocomplete="off">
+
+                    <div id="password-rules" class="validation-popup">
+                        <h4>Sécurité du mot de passe</h4>
+                        <ul>
+                            <li id="rule-length" class="invalid"><span>✕</span> Au moins 12 caractères</li>
+                            <li id="rule-lower" class="invalid"><span>✕</span> Une minuscule</li>
+                            <li id="rule-upper" class="invalid"><span>✕</span> Une majuscule</li>
+                            <li id="rule-number" class="invalid"><span>✕</span> Un chiffre</li>
+                            <li id="rule-special" class="invalid"><span>✕</span> Un caractère spécial (@, #, !, etc.)
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-login" class="btn-login" disabled>Se connecter</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Sélection des éléments du DOM
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('btn-login');
+        const rulesPopup = document.getElementById('password-rules');
+
+        // Définition des règles de sécurité
+        const rules = {
+            length: { regex: /.{12,}/, element: document.getElementById('rule-length') },
+            lower: { regex: /[a-z]/, element: document.getElementById('rule-lower') },
+            upper: { regex: /[A-Z]/, element: document.getElementById('rule-upper') },
+            number: { regex: /[0-9]/, element: document.getElementById('rule-number') },
+            special: { regex: /[^A-Za-z0-9]/, element: document.getElementById('rule-special') }
+        };
+
+        // État de validité du mot de passe
+        let isPasswordValid = false;
+
+        // --- Gestion du Mot de passe ---
+        passwordInput.addEventListener('focus', () => {
+            rulesPopup.classList.add('visible');
+        });
+
+        passwordInput.addEventListener('input', () => {
+            const val = passwordInput.value;
+            let allRulesMet = true;
+
+            // Vérification visuelle des règles (Boucle)
+            for (const key in rules) {
+                const rule = rules[key];
+                const isValid = rule.regex.test(val);
+
+                if (isValid) {
+                    rule.element.classList.remove('invalid');
+                    rule.element.classList.add('valid');
+                    rule.element.querySelector('span').innerText = '✓';
+                } else {
+                    rule.element.classList.remove('valid');
+                    rule.element.classList.add('invalid');
+                    rule.element.querySelector('span').innerText = '✕';
+                    allRulesMet = false;
+                }
+            }
+
+            // Mise à jour de l'état du mot de passe
+            isPasswordValid = allRulesMet;
+
+            // Gestion de la visibilité du popup
+            if (isPasswordValid) {
+                rulesPopup.classList.remove('visible');
+            } else {
+                rulesPopup.classList.add('visible');
+            }
+
+            // Vérification globale pour le bouton
+            updateButtonState();
+        });
+
+        // --- Gestion du Nom d'utilisateur ---
+        usernameInput.addEventListener('input', () => {
+            // On vérifie aussi le bouton quand on tape le nom
+            updateButtonState();
+        });
+
+        // --- Fonction de vérification globale ---
+        function updateButtonState() {
+            // Condition 1 : Le mot de passe respecte toutes les règles
+            // Condition 2 : Le champ identifiant n'est pas vide (et on enlève les espaces inutiles)
+            const isUsernameFilled = usernameInput.value.trim().length > 0;
+
+            if (isPasswordValid && isUsernameFilled) {
+                loginButton.disabled = false;
+            } else {
+                loginButton.disabled = true;
+            }
+        }
+
+        // --- NOUVEAU : LOGIQUE DE SOUMISSION (Bouton Login) ---
+        loginButton.addEventListener('click', async (e) => {
+            // Empêcher le rechargement si c'est dans un formulaire
+            e.preventDefault();
+
+            const clientName = usernameInput.value.trim();
+
+            // Feedback visuel (optionnel mais recommandé)
+            const originalText = loginButton.innerText;
+            loginButton.innerText = "Génération en cours...";
+            loginButton.disabled = true;
+
+            try {
+                // 1. Appel au Backend (via preload.js)
+                // Cela lance : sudo /usr/local/sbin/client_genkey.sh <client>
+                await window.api.genKey(clientName);
+
+                // 2. Sauvegarde du nom pour la page suivante
+                localStorage.setItem('currentClientName', clientName);
+
+                // --- C'EST ICI QU'ON STOCKE LE NOM ---
+                // On sauvegarde le nom sous la clé 'currentClientName'
+                localStorage.setItem('currentClientName', clientName);
+
+                // 3. Redirection vers la page de sauvegarde
+                window.location.href = 'dashboard.html';
+
+            } catch (error) {
+                console.error(error);
+                alert("Erreur lors de la génération : " + error);
+
+                // Réinitialiser le bouton en cas d'erreur
+                loginButton.innerText = originalText;
+                loginButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>
