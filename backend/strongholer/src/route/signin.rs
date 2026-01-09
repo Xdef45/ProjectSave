@@ -1,6 +1,4 @@
-use actix_web::http::header;
-use actix_web::{HttpRequest, HttpResponse};
-use actix_web::{post,web, App, HttpServer,Result, cookie::Cookie};
+use actix_web::{post,web, cookie::Cookie, HttpResponse};
 use crate::authentification::auth::{Auth, Login};
 
 #[post("/signin")]

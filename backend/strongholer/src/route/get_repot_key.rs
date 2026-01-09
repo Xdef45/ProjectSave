@@ -1,7 +1,4 @@
-use actix_web::http::header;
-use actix_web::{HttpRequest, HttpResponse};
-use actix_web::{post,web, App, HttpServer,Result, cookie::Cookie};
-use crate::authentification::auth::{Auth, Login};
+use actix_web::{post, http::header, Result};
 use actix_files::NamedFile;
 #[post("/get_repot_key")]
 async fn get_repot_key() -> Result<NamedFile>{

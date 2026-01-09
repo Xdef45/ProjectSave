@@ -1,6 +1,5 @@
-use actix_web::http::header;
 use actix_web::{HttpRequest, HttpResponse};
-use actix_web::{post,web, App, HttpServer,Result, cookie::Cookie};
+use actix_web::{post,web, App, HttpServer};
 mod authentification;
 use crate::authentification::auth::{Auth};
 mod script;
