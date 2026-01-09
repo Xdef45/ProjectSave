@@ -1,5 +1,3 @@
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-
 param(
   [switch]$Continue
 )

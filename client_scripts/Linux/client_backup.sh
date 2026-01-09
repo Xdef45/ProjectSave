@@ -10,8 +10,8 @@ SERVER_HOST="saveserver"
 SERVER_SSH_PORT=22
 SERVER_USER="tunnel"
 
-CLIENT_SSH_KEY="/home/ts/.ssh/tunnel_key"
-BORG_SSH_KEY="/home/ts/.ssh/borg_${CLIENT}_key"
+CLIENT_SSH_KEY="/home/$USER/.ssh/tunnel_key"
+BORG_SSH_KEY="/home/$USER/.ssh/borg_${CLIENT}_key"
 
 TUNNEL_PID=""
 

@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+set -x
 
 CLIENT="${1:?Usage: $0 CLIENT}"
 SERVER_HOST="${2:-saveserver}"
