@@ -1,7 +1,7 @@
-### Contenue du fichier .env
+### Contenue du fichier .env Avant le lancement du docker compose
 ```
-MARIADB_ROOT_PASSWORD=StrongRootPass123
-MARIADB_PASSWORD=secret_app_password
-MARIADB_DATABASE=strongholder
-MARIADB_USER=admin
+MARIADB_ROOT_PASSWORD=<ROOT_PASSWORD>
+MARIADB_PASSWORD=<USER_PASSWORD>
+MARIADB_DATABASE=<DATABASE_NAME>
+MARIADB_USER=<USERNAME>
 ```
