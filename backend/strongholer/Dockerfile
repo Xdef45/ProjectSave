@@ -5,10 +5,12 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -O && sh curl_resp
 RUN apt install cargo -y
 RUN useradd api -d /home/api -p "" 
 WORKDIR /home/api
-RUN git clone https://github.com/Xdef45/ProjectSave.git -b feature/ajoutAPI
-COPY .env.json .
-WORKDIR /home/api/ProjectSave/backend/strongholer
+COPY Cargo.toml .
+RUN mkdir src 
+COPY main.rs src/
+RUN cargo build
+COPY ./src ./src
 RUN cargo build
 COPY .env.json .
-EXPOSE 80
+EXPOSE 8080
 CMD ["cargo", "run"]

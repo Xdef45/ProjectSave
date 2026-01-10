@@ -1,0 +1,5 @@
+docker/.env
+backend/strongholer/target
+backend/strongholer/Cargo.lock
+backend/strongholer/handlers
+backend/strongholer/.env.json

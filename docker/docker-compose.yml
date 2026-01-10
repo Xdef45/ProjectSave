@@ -1,3 +1,4 @@
+name: strongholder
 services:
   borg-server:
     build: "./alpine docker"
@@ -12,24 +13,25 @@ services:
 
   db:
     image: mariadb:12.2-rc
-    container_name: database
+    container_name: strongholder-database
     restart: always
     environment:
-      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MARIADB_DATABASE: ${MYSQL_DATABASE}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql 
+      - ./mariadb:/docker-entrypoint-initdb.d
     networks:
       - backend_net
 
   api:
-    build: ./api
+    build: ../backend/strongholer
     container_name: api
-    restart: always
-    volumes:
-      - SAVE_FOLDER:/var/backups/borg
+#    restart: always
     ports: 
-      - "80:80"
+      - "80:8080"
     networks:
       - backend_net
 

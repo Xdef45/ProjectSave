@@ -3,7 +3,7 @@
 --
 -- Host: 127.0.0.1    Database: strongholder
 -- ------------------------------------------------------
--- Server version	10.3.39-MariaDB-1:10.3.39+maria~ubu2004
+-- Server version	12.1.2-MariaDB-ubu2404
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -15,33 +15,6 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*M!100616 SET @OLD_NOTE_VERBOSITY=@@NOTE_VERBOSITY, NOTE_VERBOSITY=0 */;
-
---
--- Table structure for table `Creadentials`
---
-CREATE DATABASE strongholder;
-USE strongholder;
-DROP TABLE IF EXISTS `Creadentials`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `Creadentials` (
-  `username` varchar(255) NOT NULL,
-  `encrypt_master_key_2` varchar(255) NOT NULL,
-  PRIMARY KEY (`username`),
-  UNIQUE KEY `encrypt_master_key_2` (`encrypt_master_key_2`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Creadentials`
---
-
-LOCK TABLES `Creadentials` WRITE;
-/*!40000 ALTER TABLE `Creadentials` DISABLE KEYS */;
-set autocommit=0;
-/*!40000 ALTER TABLE `Creadentials` ENABLE KEYS */;
-UNLOCK TABLES;
-commit;
 
 --
 -- Table structure for table `Credentials`
@@ -57,9 +30,20 @@ CREATE TABLE `Credentials` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `encrypt_master_key_2` (`encrypt_master_key_2`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+--
+-- Dumping data for table `Credentials`
+--
+
+LOCK TABLES `Credentials` WRITE;
+/*!40000 ALTER TABLE `Credentials` DISABLE KEYS */;
+set autocommit=0;
+/*!40000 ALTER TABLE `Credentials` ENABLE KEYS */;
+UNLOCK TABLES;
+commit;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
@@ -69,4 +53,4 @@ CREATE TABLE `Credentials` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-01-09 15:42:47
+-- Dump completed on 2026-01-10  2:10:46

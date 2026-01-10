@@ -57,7 +57,7 @@ impl Auth {
         let db_setting: DbSettings = config::Config::builder()
         .add_source(config::File::with_name(".env.json"))
         .build()
-        .expect("La lecture du fichier .env a échoué").try_deserialize().expect("La déserialisation aéchoué");
+        .expect("La lecture du fichier .env.json a échoué").try_deserialize().expect("La déserialisation aéchoué");
         let opt = mysql::MySqlConnectOptions::new()
         .host(db_setting.db_host.as_str())
         .password(db_setting.db_password.as_str())
