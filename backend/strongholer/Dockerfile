@@ -11,6 +11,5 @@ COPY main.rs src/
 RUN cargo build
 COPY ./src ./src
 RUN cargo build
-COPY .env.json .
 EXPOSE 8080
 CMD ["cargo", "run"]
