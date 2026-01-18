@@ -1,19 +1,46 @@
-[workspace]
-
 [package]
 name = "strongholer"
-version = "0.1.0"
 edition = "2024"
+version = "0.0.1"
+
+[workspace]
+members = []
 
 [dependencies]
-actix-web = { version = "=4.12.1", features = ["cookies"] }
-serde = "1.0.228"
-argon2 = "0.5.3"
-sqlx = { version = "0.8.6", features = [ "runtime-async-std","mysql" ] }
-openssl = { version = "0.10", features = ["vendored"] }
-jsonwebtoken = { version = "10.2.0", features = ["aws_lc_rs"] }
-uuid = { version = "1.19.0", features = ["v4"] }
-hex = "0.4"
-async-std = { version = "1.13.2", features = ["attributes"] }
-actix-multipart = "0.7.2"
 actix-files = "0.6"
+actix-multipart = "0.7.2"
+argon2 = "0.5.3"
+hex = "0.4"
+serde = "1.0.228"
+
+[dependencies.actix-web]
+version = "=4.12.1"
+features = ["cookies"]
+
+[dependencies.async-std]
+version = "1.13.2"
+features = ["attributes"]
+
+[dependencies.jsonwebtoken]
+version = "10.2.0"
+features = ["aws_lc_rs"]
+
+[dependencies.openssl]
+version = "0.10"
+features = ["vendored"]
+
+[dependencies.sqlx]
+version = "0.8.6"
+features = ["runtime-async-std", "mysql"]
+
+[dependencies.uuid]
+version = "1.19.0"
+features = ["v4"]
+
+[[bin]]
+path = "src/main.rs"
+name = "strongholer"
+plugin = false
+proc-macro = false
+edition = "2024"
+required-features = []

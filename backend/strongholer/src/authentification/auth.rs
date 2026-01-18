@@ -24,7 +24,7 @@ struct Credentials{
     id: String,
     kdf: String
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum LoginState{
     AlreadyExist,
     NotSignup,
