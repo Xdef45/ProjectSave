@@ -8,18 +8,20 @@ mod route;
 use crate::route::{signup, signin, get_repot_key, send_ssh_key};
 
 #[post("/imaconnected")]
-async fn imaconnected(req: HttpRequest) -> HttpResponse{
+async fn imaconnected(req: HttpRequest, auth: web::Data<Auth>) -> HttpResponse{
     if let Some(cookie) = req.cookie("Bearer"){
-        let _ = Auth.validation(cookie.value().to_string()).await.expect("Lors de la validation d'un cookie, une erreur est survenue");
+        auth.validation(cookie.value().to_string()).await.expect("Lors de la validation d'un cookie, une erreur est survenue");
     }
     HttpResponse::Ok().finish()
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-
-    HttpServer::new(|| {
-        App::new().service(
+    let auth = Auth::new().await;
+    HttpServer::new(move || {
+        App::new()
+        .app_data(web::Data::new(auth.clone()))
+        .service(
             web::scope("/api")
             .service(signup::signup)
             .service(signin::signin)

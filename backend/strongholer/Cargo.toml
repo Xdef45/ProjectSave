@@ -12,6 +12,7 @@ actix-multipart = "0.7.2"
 argon2 = "0.5.3"
 hex = "0.4"
 serde = "1.0.228"
+trpl = "0.3.0"
 
 [dependencies.actix-web]
 version = "=4.12.1"
@@ -36,11 +37,3 @@ features = ["runtime-async-std", "mysql"]
 [dependencies.uuid]
 version = "1.19.0"
 features = ["v4"]
-
-[[bin]]
-path = "src/main.rs"
-name = "strongholer"
-plugin = false
-proc-macro = false
-edition = "2024"
-required-features = []

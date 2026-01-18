@@ -3,13 +3,13 @@ use crate::authentification::auth::{Auth, Login,LoginState};
 
 /*S'incrire */
 #[post("/signup")]
-async fn signup(id: web::Json<Login>) -> HttpResponse{
+async fn signup(id: web::Json<Login>, auth: web::Data<Auth>) -> HttpResponse{
     let login= Login{
         username: id.username.clone(), 
         password: id.password.clone()
     };
     println!("Reçus");
-    let response = match Auth.signup(login).await {
+    let response = match auth.signup(login).await {
         Ok(token ) => {
             let cookie = Cookie::build("Bearer", token)
                 .path("/")

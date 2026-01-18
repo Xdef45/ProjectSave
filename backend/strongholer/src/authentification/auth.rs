@@ -1,4 +1,4 @@
-use sqlx::{mysql, Connection};
+use sqlx::{mysql, MySqlPool};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -36,12 +36,14 @@ struct MysqlCredentials{
     encrypt_master_key_2: String
 }
 
-pub struct Auth;
+#[derive(Clone)]
+pub struct Auth{
+    db: MySqlPool
+}
 
 impl Auth {
-    async fn db(&mut self) -> sqlx::MySqlConnection{
-        println!("Début connection");
-
+    pub async fn new() -> Auth{
+        /* Initialisation des paramètre de connection à la base de donnée */
         let opt = mysql::MySqlConnectOptions::new()
         .host(&env::var("DB_HOST").expect("DB_HOST inexistant"))
         .password(&env::var("DB_PASSWORD").expect("DB_PASSWORD inexistant"))
@@ -51,16 +53,13 @@ impl Auth {
         })
         .username(&env::var("DB_USER").expect("DB_USER inexistant"))
         .database(&env::var("DB").expect("DB inexistant"));
-        println!("Connecté");
-        return mysql::MySqlConnection::connect_with(&opt).await.expect("Impossible de se connecter à la DB");
+        Self{db: MySqlPool::connect_with(opt).await.expect("Impossible de se connecter à la DB")}
     }
-    pub async fn signup(&mut self, login: Login) -> Result<String, LoginState> {
-        /* Initialisation des paramètre de connection à la base de donnée */
-        let mut connection = self.db().await;
-        println!("Connecté");
+    pub async fn signup(&self, login: Login) -> Result<String, LoginState> {
+        let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
         /* Vérification si l'utilisateur existe */
         let query = sqlx::query("SELECT username FROM Credentials WHERE username=?").bind(login.username.as_str());
-        let number_return_line: Vec<mysql::MySqlRow> = query.fetch_all(&mut connection).await.expect("Une erreur c'est produite");
+        let number_return_line: Vec<mysql::MySqlRow> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
         if number_return_line.len() > 0 {
             return Err(LoginState::AlreadyExist);
         }
@@ -76,7 +75,7 @@ impl Auth {
         .bind(&uuid)
         .bind(login.username.as_str())
         .bind(key_encrypted);
-        let _ = query.execute(&mut connection).await.expect("l'utilisateur n'a pas pu être enregistrer");
+        let _ = query.execute(&mut *conn).await.expect("l'utilisateur n'a pas pu être enregistrer");
         
         /* Renvoyer le cookie JWT */
         let credentials = Credentials{exp: get_current_timestamp(), id:uuid, kdf:hex::encode(kdf_client)};
@@ -98,13 +97,11 @@ impl Auth {
         return hex::encode(&master_key_2_encrypted);
     }
 
-    pub async fn signin(&mut self, login:Login) -> Result<String, LoginState>{
-        /* Initialisation des paramètre de connection à la base de donnée */
-        let mut connection = self.db().await;
-
+    pub async fn signin(&self, login:Login) -> Result<String, LoginState>{
         /* Récupération clé master 2 */
+        let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
         let query = sqlx::query_as("SELECT id, encrypt_master_key_2 FROM Credentials WHERE username=?").bind(login.username.as_str());
-        let result: Vec<MysqlCredentials> = query.fetch_all(&mut connection).await.expect("Une erreur c'est produite");
+        let result: Vec<MysqlCredentials> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
 
         /* Vérification si l'utilisateur existe */
         if result.len() != 1 {
@@ -131,7 +128,7 @@ impl Auth {
     }
 
     /* Vérifier token jwt */
-    pub async fn validation(self,token_jwt: String)-> Result<bool, String>{
+    pub async fn validation(&self,token_jwt: String)-> Result<bool, String>{
         let jwt_secret=env::var("JWT_SECRET").expect("JWT_SECRET inexisstant");
         let mut validation = Validation::new(Algorithm::HS384);
         validation.leeway=60*10;
