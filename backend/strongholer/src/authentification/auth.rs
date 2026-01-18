@@ -7,29 +7,44 @@ use openssl::aes::{AesKey, unwrap_key, wrap_key};
 use argon2::{Argon2, Params};
 use std::env;
 
-
+// argon2id paramètres
 const MEMORY_COST: u32 = 64*1024;
 const ITERATION_COST: u32 = 3;
 const PARALLELISM_COST: u32 = 4;
 const HASH_LENGTH: usize = 32;
+
+//Validiter d'un token Bearer
+const EXPIRE_TIME: u64 = 60*20;
+const REFRESH_TIME: u64 = 60*10;
 
 #[derive(Deserialize)]
 pub struct Login{
     pub username: String,
     pub password: String
 }
+
 #[derive(Debug, Serialize, Deserialize)]
-struct Credentials{
+pub struct Credentials{
     exp: u64,
     id: String,
     kdf: String
 }
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum LoginState{
     AlreadyExist,
     NotSignup,
     InvalidPassword
 }
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum BearerState{
+    Error,
+    Expired,
+    Valid,
+
+}
+
 #[derive(sqlx::FromRow)]
 struct MysqlCredentials{
     id: String,
@@ -78,8 +93,8 @@ impl Auth {
         let _ = query.execute(&mut *conn).await.expect("l'utilisateur n'a pas pu être enregistrer");
         
         /* Renvoyer le cookie JWT */
-        let credentials = Credentials{exp: get_current_timestamp(), id:uuid, kdf:hex::encode(kdf_client)};
-        Ok(self.create_token(credentials).await)
+        let credentials = Credentials{exp: get_current_timestamp() + EXPIRE_TIME, id:uuid, kdf:hex::encode(kdf_client)};
+        Ok(self.create_token(&credentials))
     }
 
     pub fn create_master_key_2(&self, kdf_client:&[u8]) -> String{
@@ -123,32 +138,39 @@ impl Auth {
         };
 
         /* Renvoyer le cookie JWT */
-        let credentials = Credentials{exp: get_current_timestamp(), id:result[0].id.clone(), kdf:hex::encode(kdf_client)};
-        Ok(self.create_token(credentials).await)
+        let credentials = Credentials{exp: (get_current_timestamp() + EXPIRE_TIME), id:result[0].id.clone(), kdf:hex::encode(kdf_client)};
+        Ok(self.create_token(&credentials))
     }
 
     /* Vérifier token jwt */
-    pub async fn validation(&self,token_jwt: String)-> Result<bool, String>{
-        let jwt_secret=env::var("JWT_SECRET").expect("JWT_SECRET inexisstant");
-        let mut validation = Validation::new(Algorithm::HS384);
-        validation.leeway=60*10;
+    pub fn validation(&self,token_jwt: String)-> (BearerState, (Option<String>, Option<Credentials>)){
+        let jwt_secret=env::var("JWT_SECRET").expect("JWT_SECRET inexistant");
+        let validation = Validation::new(Algorithm::HS384);
         match decode::<Credentials>(&token_jwt, &DecodingKey::from_secret(jwt_secret.as_bytes()), &validation){
             Err(e)=> {
-                if true{
-                    return Err(e.to_string())
-                }else{
-                    return Ok(false)
-                }
+                println!("{}",e.to_string());
+                return (BearerState::Error, (Some(e.to_string()), None))
             },
-            Ok(o)=> {
-                println!("{:?}", o.claims.kdf);
-                return Ok(true)
+            Ok(token)=> {
+                if token.claims.exp - REFRESH_TIME > get_current_timestamp(){
+                    let credentials =  Credentials { 
+                        exp: token.claims.exp, 
+                        id: token.claims.id, 
+                        kdf: token.claims.kdf };
+                    return (BearerState::Valid, (None, Some(credentials)))
+                    
+                }else{
+                    let credentials =  Credentials { 
+                        exp: get_current_timestamp()+EXPIRE_TIME, 
+                        id: token.claims.id, 
+                        kdf: token.claims.kdf };
+                    return (BearerState::Expired, (Some(self.create_token(&credentials)), Some(credentials)))
+                }
             }
         };
-
     }
 
-    async fn create_token(&self, credentials: Credentials) -> String{
+    fn create_token(&self, credentials: &Credentials) -> String{
         /* Récupère la variable d'environnement */
         let jwt_secret=env::var("JWT_SECRET").expect("JWT_SECRET inexistant");
 

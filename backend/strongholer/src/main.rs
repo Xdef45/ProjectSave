@@ -1,8 +1,8 @@
-use actix_web::{HttpRequest, HttpResponse};
-use actix_web::{post,web, App, HttpServer};
+use actix_web::{HttpRequest, HttpResponse, cookie::Cookie, post,web, App, HttpServer};
 mod authentification;
-use crate::authentification::auth::{Auth};
+use crate::authentification::auth::{Auth, BearerState};
 mod script;
+use serde_json;
 
 mod route;
 use crate::route::{signup, signin, get_repot_key, send_ssh_key};
@@ -10,9 +10,37 @@ use crate::route::{signup, signin, get_repot_key, send_ssh_key};
 #[post("/imaconnected")]
 async fn imaconnected(req: HttpRequest, auth: web::Data<Auth>) -> HttpResponse{
     if let Some(cookie) = req.cookie("Bearer"){
-        auth.validation(cookie.value().to_string()).await.expect("Lors de la validation d'un cookie, une erreur est survenue");
+        let (bearer_state, (result, credentials)) = auth.validation(cookie.value().to_string());
+        if bearer_state == BearerState::Valid {
+            return HttpResponse::Ok()
+            .content_type("application/json")
+            .body(serde_json::to_string(&credentials).expect("Convertion de struct à string a échoué"))
+        }
+        if bearer_state == BearerState::Expired{
+            let cookie = Cookie::build("Bearer", match result{
+                Some(cookie)=>cookie,
+                None=>"Rien".to_string()
+            })
+                .path("/")
+                .secure(true)
+                .http_only(true)
+                .finish();
+            return HttpResponse::Ok()
+            .append_header(("Set-Cookie", cookie.to_string()))
+            .content_type("application/json")
+            .body(serde_json::to_string(&credentials).expect("Convertion de struct à string a échoué"))
+        }
+        if bearer_state == BearerState::Error{
+            return HttpResponse::Ok()
+            .body(match result{
+                Some(res)=>res,
+                None=>"Rien".to_string()
+            })
+        }
+        return HttpResponse::BadRequest().body("Erreur inconnue")
+    }else{
+        return HttpResponse::BadRequest().body("Vous n'avez pas de cookie de connection")
     }
-    HttpResponse::Ok().finish()
 }
 
 #[actix_web::main]
