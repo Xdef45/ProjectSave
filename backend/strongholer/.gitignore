@@ -2,3 +2,4 @@ target
 Cargo.lock
 handlers
 .env.json
+recipe.json
