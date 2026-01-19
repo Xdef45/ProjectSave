@@ -1,18 +1,10 @@
 #!/bin/bash
 set -euo pipefail
+set -x
 
-echo "[prepareserv] Installing required packages"
 
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
-apt-get install -y --no-install-recommends \
-  borgbackup \
-  gpg \
-  openssh-server \
-  util-linux \
-  ca-certificates
 
-# === Config ===
+# config
 BACKUP_USER="backup"
 BACKUP_HOME="/srv/repos"
 
@@ -28,14 +20,22 @@ SERVER_TO_CLIENT_KEY="${SERVER_KEYS_DIR}/server_to_client_ed25519"
 
 TUNNEL_STATE_DIR="/var/lib/tunnel"          # utilisé par alloc_reverse_port.sh
 
+SUDOERS_BACKUP="/etc/sudoers.d/backup-maint"
+
+CREATE_USER_SCRIPT="/usr/local/sbin/create_user.sh"
+INSTALL_CLIENT_KEY_SCRIPT="/usr/local/sbin/install_client_key.sh"
+SERVER_CLEANUP_SCRIPT="/usr/local/sbin/server_cleanup_key.sh"
+
+
+
 SUDOERS_TUNNEL="/etc/sudoers.d/tunnel-backup"
 
-# Scripts que tunnel a le droit d'exécuter en sudo (strict)
+# scripts que tunnel a le droit d'exécuter en sudo
 ALLOC_SCRIPT="/usr/local/sbin/alloc_reverse_port.sh"
 PREPAREDECRYPT_SCRIPT="/usr/local/sbin/preparedecrypt.sh"
 CLEANUP_SCRIPT="/usr/local/sbin/server_cleanup_key.sh"
 
-# === Helpers ===
+#on set l'installatiion des packages
 need_root() { [ "$(id -u)" -eq 0 ] || { echo "Run as root." >&2; exit 1; }; }
 pkg_install() {
   export DEBIAN_FRONTEND=noninteractive
@@ -58,6 +58,15 @@ pkg_install
 echo "[prepareserv] Ensure /usr/local/sbin exists"
 install -d -o root -g root -m 0755 /usr/local/sbin
 
+echo "[prepserv] Install all local .sh scripts to /usr/local/sbin"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+for f in "${SCRIPT_DIR}"/*.sh; do
+  [ -e "$f" ] || continue
+  install -m 0755 -o root -g root "$f" "/usr/local/sbin/$(basename "$f")"
+done
+
 # === Users ===
 echo "[prepareserv] Ensure users"
 if ! id "${BACKUP_USER}" >/dev/null 2>&1; then
@@ -68,7 +77,7 @@ if ! id "${TUNNEL_USER}" >/dev/null 2>&1; then
   useradd -d "${TUNNEL_HOME}" -m -s /usr/sbin/nologin "${TUNNEL_USER}"
 fi
 
-# === Repos root dir ===
+# repos 
 echo "[prepareserv] Prepare ${BACKUP_HOME} and permissions"
 install -d -o "${BACKUP_USER}" -g "${BACKUP_USER}" -m 0750 "${BACKUP_HOME}"
 
@@ -76,7 +85,7 @@ install -d -o "${BACKUP_USER}" -g "${BACKUP_USER}" -m 0750 "${BACKUP_HOME}"
 # -> on donne juste "x" aux autres, pas "r"
 chmod o+x "${BACKUP_HOME}"
 
-# === Secrets ===
+# secrets (oulala)
 echo "[prepareserv] Prepare secrets dir ${SECRET_DIR}"
 groupadd -f "${SECRET_GROUP}"
 
@@ -86,24 +95,19 @@ usermod -aG "${SECRET_GROUP}" "${TUNNEL_USER}"
 
 install -d -m 0750 -o root -g "${SECRET_GROUP}" "${SECRET_DIR}"
 
-# IMPORTANT: on ne crée PAS automatiquement key.pass ici (tu peux le faire manuellement)
-# Mais on impose les perms si le fichier existe
+#perms pr la clé gpg
 if [ -f "${SECRET_FILE}" ]; then
   chown root:"${SECRET_GROUP}" "${SECRET_FILE}"
   chmod 0640 "${SECRET_FILE}"
 fi
 
-# === State dir for ports ===
+# state dir pour les ports (very important :D)
 echo "[prepareserv] Prepare tunnel state dir ${TUNNEL_STATE_DIR}"
 install -d -m 0700 -o root -g root "${TUNNEL_STATE_DIR}"
 install -d -m 0700 -o root -g root "${TUNNEL_STATE_DIR}/locks"
 install -d -m 0700 -o root -g root "${TUNNEL_STATE_DIR}/clients"
 
-# === Temp dir for borg key decrypt (used by preparedecrypt.sh) ===
-echo "[prepareserv] Prepare /run/borgkey"
-install -d -m 0700 -o root -g root /run/borgkey
-
-# === Server->Client SSH key ===
+# clé server to client
 echo "[prepareserv] Prepare server->client SSH key in ${SERVER_KEYS_DIR}"
 install -d -m 0700 -o root -g root "${SERVER_KEYS_DIR}"
 
@@ -113,15 +117,15 @@ if [ ! -f "${SERVER_TO_CLIENT_KEY}" ]; then
   chmod 0644 "${SERVER_TO_CLIENT_KEY}.pub"
 fi
 
-# Installer la clé dans le home du user tunnel (celle utilisée par preparedecrypt.sh)
+# installation clé tunnel
 echo "[prepareserv] Install server->client key into ${TUNNEL_HOME}/.ssh"
 install -d -m 0700 -o "${TUNNEL_USER}" -g "${TUNNEL_USER}" "${TUNNEL_HOME}/.ssh"
 install -m 0600 -o "${TUNNEL_USER}" -g "${TUNNEL_USER}" "${SERVER_TO_CLIENT_KEY}" "${TUNNEL_HOME}/.ssh/server_to_client_ed25519"
 install -m 0644 -o "${TUNNEL_USER}" -g "${TUNNEL_USER}" "${SERVER_TO_CLIENT_KEY}.pub" "${TUNNEL_HOME}/.ssh/server_to_client_ed25519.pub"
 
-# === Sudoers (tunnel) ===
+# sudoers pr tunnel
 echo "[prepareserv] Configure sudoers for ${TUNNEL_USER} (restricted)"
-# Vérif que les scripts existent (sinon on te le dit tout de suite)
+# vérif présence scripts
 for s in "$ALLOC_SCRIPT" "$PREPAREDECRYPT_SCRIPT" "$CLEANUP_SCRIPT"; do
   if [ ! -x "$s" ]; then
     echo "[prepareserv] WARNING: $s missing or not executable (install_all.sh should have copied it)" >&2
@@ -134,8 +138,30 @@ ${TUNNEL_USER} ALL=(root) NOPASSWD: ${ALLOC_SCRIPT}, ${PREPAREDECRYPT_SCRIPT}, $
 EOF
 chmod 0440 "${SUDOERS_TUNNEL}"
 
-# === SSH hardening baseline for tunnel usage (optionnel mais cohérent) ===
-# On évite de casser ton sshd_config existant, on ajoute un drop-in.
+# sudoers pr backup
+echo "[prepareserv] Configure sudoers for ${BACKUP_USER} (restricted)"
+
+# Vérif que les scripts existent (sinon warning)
+for s in "$CREATE_USER_SCRIPT" "$INSTALL_CLIENT_KEY_SCRIPT"; do
+  if [ ! -x "$s" ]; then
+    echo "[prepareserv] WARNING: $s missing or not executable" >&2
+  fi
+done
+
+install -d -m 0755 -o root -g root /etc/sudoers.d
+
+cat > "${SUDOERS_BACKUP}" <<EOF
+# Allow backup user to run only specific maintenance scripts without password
+${BACKUP_USER} ALL=(root) NOPASSWD: ${CREATE_USER_SCRIPT}, ${INSTALL_CLIENT_KEY_SCRIPT}
+EOF
+chmod 0440 "${SUDOERS_BACKUP}"
+
+if command -v visudo >/dev/null 2>&1; then
+  visudo -cf "${SUDOERS_BACKUP}" || { echo "[prepareserv] ERROR: invalid sudoers file ${SUDOERS_BACKUP}" >&2; exit 1; }
+fi
+
+
+# config pr tunnel ssh au cas où
 echo "[prepareserv] Ensure sshd drop-in for forwarding exists"
 install -d -m 0755 /etc/ssh/sshd_config.d
 

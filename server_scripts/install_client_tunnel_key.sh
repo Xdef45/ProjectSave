@@ -26,7 +26,7 @@ sudo chown ${TUNNEL_USER}:${TUNNEL_USER} "${SSH_DIR}"
 
 # Optionnel mais recommandé : restrictions SSH
 KEY_LINE=$(cat "${PUBKEY_FILE}")
-ENTRY="restrict,no-pty,no-agent-forwarding,no-X11-forwarding ${KEY_LINE} ${CLIENT}"
+ENTRY="no-pty,no-agent-forwarding,no-X11-forwarding ${KEY_LINE} ${CLIENT}"
 
 # Évite les doublons
 if sudo grep -q "${KEY_LINE}" "${AUTH_KEYS}" 2>/dev/null; then

@@ -20,10 +20,16 @@ for s in \
   server_cleanup_key.sh \
   create_user.sh \
   install_client_key.sh \
-  prepserv.sh
+  prepserv.sh \
+  gen_gpg_passphrase.sh
 do
   install -m 0755 -o root -g root "${SRC_DIR}/${s}" "${DST_DIR}/${s}"
 done
+
+cp -a "${SRC_DIR}/client_folder" "${DST_DIR}/client_folder"
+
+echo "[install_all] Running gpggen"
+/usr/local/sbin/gen_gpg_passphrase.sh
 
 echo "[install_all] Running prepserv.sh"
 /usr/local/sbin/prepserv.sh
