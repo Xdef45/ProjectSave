@@ -120,6 +120,3 @@ fi
 
 echo "[prepclient] Done."
 
-echo "Next steps:"
-echo "  1) Put server_to_client pubkey into /home/borghelper/.ssh/authorized_keys (forced command)."
-
