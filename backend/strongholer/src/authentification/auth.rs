@@ -6,6 +6,7 @@ use openssl::rand::rand_bytes;
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
 use argon2::{Argon2, Params};
 use std::env;
+use jsonwebtoken::errors::ErrorKind;
 
 // argon2id paramètres
 const MEMORY_COST: u32 = 64*1024;
@@ -39,10 +40,14 @@ pub enum LoginState{
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum BearerState{
+    /// Error inconnue
     Error,
+    /// Token à expiré
     Expired,
-    Valid,
-
+    /// Token à rafraîchir
+    Refresh,
+    /// Token valide
+    Valid
 }
 
 #[derive(sqlx::FromRow)]
@@ -148,8 +153,12 @@ impl Auth {
         let validation = Validation::new(Algorithm::HS384);
         match decode::<Credentials>(&token_jwt, &DecodingKey::from_secret(jwt_secret.as_bytes()), &validation){
             Err(e)=> {
-                println!("{}",e.to_string());
-                return (BearerState::Error, (Some(e.to_string()), None))
+                if e.into_kind() ==  ErrorKind::ExpiredSignature{
+                    return (BearerState::Expired, (None, None))
+                }else{
+
+                }
+                return (BearerState::Error, (None, None))
             },
             Ok(token)=> {
                 if token.claims.exp - REFRESH_TIME > get_current_timestamp(){
@@ -164,7 +173,7 @@ impl Auth {
                         exp: get_current_timestamp()+EXPIRE_TIME, 
                         id: token.claims.id, 
                         kdf: token.claims.kdf };
-                    return (BearerState::Expired, (Some(self.create_token(&credentials)), Some(credentials)))
+                    return (BearerState::Refresh, (Some(self.create_token(&credentials)), Some(credentials)))
                 }
             }
         };
