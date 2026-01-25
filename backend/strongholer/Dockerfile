@@ -1,8 +1,8 @@
 FROM debian:13.2 AS chef
 RUN apt update && apt upgrade -y
-RUN apt install git curl pkg-config libssl-dev make -y
+RUN apt install curl pkg-config libssl-dev make build-essential -y
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -O && sh curl_response --quiet -y
-RUN apt install cargo -y
+ENV PATH=/root/.cargo/bin:$PATH
 RUN cargo install cargo-chef 
 WORKDIR /app
 
@@ -13,7 +13,6 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
-RUN apt update && apt-get install pkg-config libssl-dev make -y
 RUN cargo chef cook --recipe-path recipe.json
 # Build application
 COPY . .
