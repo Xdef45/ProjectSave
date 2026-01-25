@@ -16,7 +16,7 @@ pub async fn authentification_middleware(
     // est ce que le cookie existe ?
     let cookie = match req.cookie("Bearer"){
         Some(cookie)=>cookie,
-        None => return Ok(req.into_response(HttpResponse::Ok().body("Pas de coofkie Bearer")))
+        None => return Ok(req.into_response(HttpResponse::Ok().body("Pas de cookie Bearer")))
     };
     let (bearer_state, (result, _)) = auth.validation(cookie.value().to_string());
     if bearer_state == BearerState::Valid {
@@ -34,7 +34,7 @@ pub async fn authentification_middleware(
         return Ok(res.map_into_boxed_body())
     }
     if bearer_state == BearerState::Expired{
-        let cookie = Cookie::build("Bearer", result.expect(""))
+        let cookie = Cookie::build("Bearer", "")
                 .path("/")
                 .secure(true)
                 .max_age(Duration::milliseconds(0))
