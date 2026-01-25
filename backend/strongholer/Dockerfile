@@ -1,4 +1,4 @@
-FROM debian:13.2 AS chef
+FROM debian:13.3 AS chef
 RUN apt update && apt upgrade -y
 RUN apt install curl pkg-config libssl-dev make build-essential -y
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -O && sh curl_response --quiet -y
@@ -19,7 +19,6 @@ COPY . .
 RUN cargo build
 
 # We do not need the Rust toolchain to run the binary!
-FROM debian:13.2 AS runtime
-WORKDIR /app
+FROM debian:13.3 AS runtime
 COPY --from=builder /app/target/debug/strongholer /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/strongholer"]
