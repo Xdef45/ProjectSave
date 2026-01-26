@@ -178,5 +178,9 @@ systemctl reload ssh || systemctl reload sshd || true
 
 echo
 echo "OK: backup_user=${BACKUP_USER}, repos=${BACKUP_HOME}, secrets=${SECRET_DIR}, server_keys=${SERVER_KEYS_DIR}"
+
+echo "[install_all] Running gpggen"
+/usr/local/sbin/gen_gpg_passphrase.sh
+
 echo "Server->client pubkey (à mettre côté client dans authorized_keys borghelper):"
 cat "${SERVER_TO_CLIENT_KEY}.pub"

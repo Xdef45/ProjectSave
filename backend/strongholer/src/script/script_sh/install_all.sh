@@ -28,7 +28,9 @@ done
 
 cp -a "${SRC_DIR}/client_folder" "${DST_DIR}/client_folder"
 
+echo "[install_all] Done."
+
 echo "[install_all] Running prepserv.sh"
 /usr/local/sbin/prepserv.sh
 
-echo "[install_all] Done."
+
