@@ -26,9 +26,9 @@ pub struct Login{
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Credentials{
-    exp: u64,
-    id: String,
-    kdf: String
+    pub exp: u64,
+    pub id: String,
+    pub kdf: String
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
