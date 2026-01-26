@@ -28,9 +28,6 @@ done
 
 cp -a "${SRC_DIR}/client_folder" "${DST_DIR}/client_folder"
 
-echo "[install_all] Running gpggen"
-/usr/local/sbin/gen_gpg_passphrase.sh
-
 echo "[install_all] Running prepserv.sh"
 /usr/local/sbin/prepserv.sh
 

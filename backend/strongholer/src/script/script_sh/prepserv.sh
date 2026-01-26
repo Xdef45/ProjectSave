@@ -47,7 +47,8 @@ pkg_install() {
     acl \
     rsync \
     ca-certificates \
-    util-linux
+    util-linux \
+    sudo
 }
 
 need_root
