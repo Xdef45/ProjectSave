@@ -147,22 +147,6 @@ if command -v visudo >/dev/null 2>&1; then
   visudo -cf "${SUDOERS_BACKUP}" || { echo "[prepareserv] ERROR: invalid sudoers file ${SUDOERS_BACKUP}" >&2; exit 1; }
 fi
 
-
-# config pr tunnel ssh au cas où
-echo "[prepareserv] Ensure sshd drop-in for forwarding exists"
-install -d -m 0755 /etc/ssh/sshd_config.d
-
-cat > /etc/ssh/sshd_config.d/50-backup-tunnel.conf <<'EOF'
-# Backup tunnel baseline
-AllowTcpForwarding yes
-GatewayPorts no
-X11Forwarding no
-PermitTunnel no
-EOF
-
-systemctl reload ssh || systemctl reload sshd || true
-
-echo
 echo "OK: backup_user=${BACKUP_USER}, repos=${BACKUP_HOME}, secrets=${SECRET_DIR}, server_keys=${SERVER_KEYS_DIR}"
 
 echo "[install_all] Running gpggen"
