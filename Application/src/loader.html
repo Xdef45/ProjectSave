@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chargement...</title>
+    <link rel="stylesheet" href="style.css">
+
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            const statusTitle = document.getElementById('status-title');
+            const logBox = document.getElementById('logs');
+
+            // Vérification de sécurité
+            if (!window.api) {
+                logBox.textContent = "ERREUR : L'API Electron n'est pas chargée (preload.js manquant).";
+                statusTitle.textContent = "Erreur Fatale";
+                statusTitle.style.color = "#ff7675";
+                return;
+            }
+
+            try {
+                // 1. APPEL DU SCRIPT 'install_client'
+                // Pas d'arguments nécessaires pour celui-ci
+                logBox.textContent += "\nExécution de install_client.sh...";
+
+                const result = await window.api.runScript('install_client');
+
+                // 2. GESTION DU RÉSULTAT
+                if (result.success) {
+                    // SUCCÈS
+                    logBox.textContent = result.logs; // Affiche la sortie du script
+                    logBox.textContent += "\n\n✅ Installation terminée avec succès.";
+                    statusTitle.textContent = "Démarrage...";
+
+                    // Petite pause pour que l'utilisateur voie le succès
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+
+                } else {
+                    // ÉCHEC DU SCRIPT
+                    statusTitle.textContent = "Erreur d'installation";
+                    statusTitle.style.color = "#ff7675"; // Rouge
+
+                    logBox.textContent = "ERREUR SYSTÈME :\n";
+                    logBox.textContent += result.error;
+                    logBox.textContent += "\n\nDÉTAILS :\n" + result.logs;
+
+                    // On ne redirige PAS, on laisse l'utilisateur voir l'erreur
+                }
+
+            } catch (err) {
+                // ÉCHEC JS / ELECTRON
+                console.error(err);
+                statusTitle.textContent = "Erreur Critique";
+                statusTitle.style.color = "#ff7675";
+                logBox.textContent = "Exception JS : " + err.message;
+            }
+        });
+    </script>
+</head>
+
+<body>
+
+    <div class="loader-container">
+        <div class="spinner"></div>
+        <div class="loading-text">Configuration de votre poste en cours...</div>
+    </div>
+
+</body>
+
+</html>

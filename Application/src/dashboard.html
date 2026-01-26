@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>StrongHolder - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="app-layout">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>StrongHolder</h3>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item active">
+                <span class="icon">🏠</span> <span>Dashboard</span>
+            </a>
+            <a href="save.html" class="nav-item">
+                <span class="icon">💾</span> <span>Sauvegarder</span>
+            </a>
+            <a href="restore.html" class="nav-item">
+                <span class="icon">↺</span> <span>Restaurer</span>
+            </a>
+            <a href="logs.html" class="nav-item">
+                <span class="icon">📋</span> <span>Logs</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="top-bar">
+            <div class="left-section">
+                <button id="menu-toggle" class="icon-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <h2>Tableau de bord</h2>
+            </div>
+
+            <div class="right-section">
+                <a href="settings.html" class="icon-btn" title="Paramètres">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                        </path>
+                    </svg>
+                </a>
+
+                <div class="profile-container">
+                    <button id="profile-btn" class="icon-btn">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </button>
+                    <div id="profile-dropdown" class="dropdown-menu">
+                        <div class="dropdown-header">Mon Compte</div>
+                        <a href="profile.html">Mon profil</a>
+                        <div class="divider"></div>
+                        <a href="login.html" class="logout">Se déconnecter</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-wrapper">
+
+            <section class="action-section">
+                <a href="save.html" class="btn-action primary">
+                    <span>+</span> Lancer une sauvegarde
+                </a>
+                <a href="restore.html" class="btn-action secondary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38" />
+                    </svg>
+                    Restaurer des fichiers
+                </a>
+            </section>
+
+            <div class="stats-grid">
+                <div class="card main-stat">
+                    <h4>Dernière sauvegarde</h4>
+                    <div class="big-date">02 Déc 2023 <span class="time">14:30</span></div>
+                    <div class="file-count">12,450 fichiers sécurisés</div>
+                </div>
+
+                <div class="card schedule-stat">
+                    <h4>Prochaine sauvegarde</h4>
+                    <div class="medium-date">03 Déc 2023 <span class="time">14:30</span></div>
+                    <div class="frequency-tag">Fréquence : <strong>Quotidienne</strong></div>
+                </div>
+            </div>
+
+            <h3 class="section-title">Statistiques de la dernière sauvegarde</h3>
+
+            <div class="details-grid">
+                <div class="card detail-card modified">
+                    <div class="detail-number">42</div>
+                    <div class="detail-label">Fichiers modifiés</div>
+                </div>
+                <div class="card detail-card added">
+                    <div class="detail-number">128</div>
+                    <div class="detail-label">Fichiers ajoutés</div>
+                </div>
+                <div class="card detail-card deleted">
+                    <div class="detail-number">5</div>
+                    <div class="detail-label">Fichiers supprimés</div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="renderer.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,880 @@
+/* --- Reset & Base --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+:root {
+    --primary-color: #bd5ce7;
+    /* Violet principal */
+    --primary-hover: #b929d9;
+    /* Violet plus foncé pour le survol */
+    --bg-color: #f4f5f9;
+    /* Gris très pâle pour le fond */
+    --text-color: #2d3436;
+    --text-muted: #636e72;
+    --border-radius: 12px;
+}
+
+body {
+    background-color: var(--bg-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: var(--text-color);
+}
+
+/* --- Container & Carte --- */
+.container {
+    width: 100%;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.login-card {
+    background: white;
+    width: 100%;
+    max-width: 400px;
+    padding: 40px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 10px 25px rgba(108, 92, 231, 0.1);
+    /* Ombre violette très subtile */
+    text-align: center;
+}
+
+/* --- Typographie --- */
+.header h2 {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--primary-color);
+}
+
+.header p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 30px;
+}
+
+/* --- Champs de formulaire --- */
+.input-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #dfe6e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    outline: none;
+    background-color: #fafafa;
+}
+
+.input-group input:focus {
+    border-color: var(--primary-color);
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+}
+
+/* --- Bouton --- */
+.btn-login {
+    width: 100%;
+    padding: 14px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s;
+    margin-top: 10px;
+}
+
+.btn-login:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-login:active {
+    transform: scale(0.98);
+}
+
+/* --- Style spécifique pour le Loader --- */
+.loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner {
+    width: 80px;
+    height: 80px;
+    border: 4px solid rgba(108, 92, 231, 0.2);
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+.loading-text {
+    font-size: 1.1rem;
+    color: var(--primary-color);
+    font-weight: 500;
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* Animations */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* ... (Gardez tout le CSS précédent : Reset, Body, Container, Header, etc.) ... */
+
+/* --- AJOUTS POUR LA VALIDATION --- */
+
+/* Parent relatif pour positionner le popup */
+.relative-parent {
+    position: relative;
+}
+
+/* Style du Pop-up */
+.validation-popup {
+    position: absolute;
+    top: 100%;
+    /* Juste en dessous du champ */
+    left: 0;
+    width: 100%;
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    border: 1px solid #dfe6e9;
+    z-index: 10;
+
+    /* Animation d'apparition */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+.validation-popup.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(5px);
+}
+
+.validation-popup h4 {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.validation-popup ul {
+    list-style: none;
+    text-align: left;
+}
+
+.validation-popup li {
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* États des règles */
+.validation-popup li.invalid {
+    color: #b2bec3;
+    /* Gris par défaut ou rouge clair */
+}
+
+.validation-popup li.invalid span {
+    color: #ff7675;
+    /* Croix rouge */
+    font-weight: bold;
+}
+
+.validation-popup li.valid {
+    color: #2d3436;
+    /* Texte sombre quand validé */
+}
+
+.validation-popup li.valid span {
+    color: #00b894;
+    /* Check vert */
+    font-weight: bold;
+}
+
+/* --- Modification du bouton pour l'état disabled --- */
+.btn-login:disabled {
+    background-color: #b2bec3;
+    /* Gris */
+    cursor: not-allowed;
+    transform: none !important;
+    /* Pas d'effet de clic */
+    opacity: 0.7;
+}
+
+.btn-login:disabled:hover {
+    background-color: #b2bec3;
+    /* Reste gris au survol */
+}
+
+
+/* ... (Gardez votre CSS existant) ... */
+
+/* --- LAYOUT DASHBOARD --- */
+
+/* Reset spécifique pour le dashboard pour écraser le centrage du login */
+body.app-layout {
+    display: flex;
+    align-items: flex-start;
+    /* Annule le center */
+    justify-content: flex-start;
+    /* Annule le center */
+    background-color: #f4f5f9;
+    height: 100vh;
+    overflow: hidden;
+    /* Pas de scroll sur le body entier */
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+    width: 250px;
+    height: 100vh;
+    background-color: white;
+    border-right: 1px solid #dfe6e9;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+
+    /* Animation fluide pour la disparition */
+    transition: all 0.3s ease-in-out;
+
+    /* Important : empêche le contenu de déborder quand on rétrécit */
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* --- ÉTAT CACHÉ (DISPARITION TOTALE) --- */
+.sidebar.collapsed {
+    width: 0;
+    /* Largeur nulle */
+    padding: 0;
+    /* Pas de marge intérieure */
+    border: none;
+    /* Pas de bordure grise */
+    opacity: 0;
+    /* Rend le contenu invisible */
+}
+
+/* Ajustement optionnel : si vous voulez que le header prenne toute la place
+   Normalement le Flexbox le fait tout seul, mais on s'assure que 
+   le main-content s'étale bien */
+.main-content {
+    transition: width 0.3s ease-in-out;
+}
+
+/* --- AJUSTEMENT DU HEADER (HAMBURGER) --- */
+/* On s'assure que le bouton hamburger est visible */
+#menu-toggle {
+    display: flex;
+    /* ou block */
+    cursor: pointer;
+}
+
+.sidebar-header h3 {
+    color: var(--primary-color);
+    margin-bottom: 40px;
+    font-size: 1.5rem;
+}
+
+.nav-item {
+    display: block;
+    padding: 12px 15px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    background-color: rgba(108, 92, 231, 0.1);
+    color: var(--primary-color);
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    height: 100vh;
+    overflow-y: auto;
+    /* Scroll uniquement ici */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Top Bar */
+.top-bar {
+    background: white;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #dfe6e9;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+}
+
+.left-section,
+.right-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    color: var(--text-muted);
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn:hover {
+    background-color: #dfe6e9;
+    color: var(--primary-color);
+}
+
+/* Dropdown Profil */
+.profile-container {
+    position: relative;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    width: 180px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    border: 1px solid #dfe6e9;
+    display: none;
+    /* Caché par défaut */
+    flex-direction: column;
+    padding: 10px 0;
+    z-index: 100;
+}
+
+.dropdown-menu.show {
+    display: flex;
+}
+
+.dropdown-header {
+    padding: 0 15px 10px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: bold;
+}
+
+.dropdown-menu a {
+    padding: 10px 15px;
+    text-decoration: none;
+    color: var(--text-color);
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.dropdown-menu a:hover {
+    background-color: #f4f5f9;
+}
+
+.dropdown-menu .logout {
+    color: #ff7675;
+}
+
+.divider {
+    height: 1px;
+    background-color: #dfe6e9;
+    margin: 5px 0;
+}
+
+/* Dashboard Content Wrapper */
+.dashboard-wrapper {
+    padding: 30px;
+    max-width: 1000px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* Action Section */
+.action-section {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.btn-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 25px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: transform 0.2s;
+}
+
+.btn-action.primary {
+    background-color: var(--primary-color);
+    color: white;
+    flex: 1;
+    /* Prend plus de place */
+    box-shadow: 0 4px 10px rgba(108, 92, 231, 0.3);
+}
+
+.btn-action.secondary {
+    background-color: white;
+    color: var(--text-color);
+    border: 1px solid #dfe6e9;
+}
+
+.btn-action:hover {
+    transform: translateY(-2px);
+}
+
+/* Cards & Grid */
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.02);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.main-stat h4,
+.schedule-stat h4 {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+.big-date {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 5px;
+}
+
+.medium-date {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-bottom: 5px;
+}
+
+.time {
+    font-size: 1rem;
+    font-weight: normal;
+    color: #b2bec3;
+}
+
+.frequency-tag {
+    background-color: #f4f5f9;
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: inline-block;
+    font-size: 0.85rem;
+    color: var(--text-color);
+}
+
+/* Details Grid */
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.detail-card {
+    text-align: center;
+}
+
+.detail-number {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.detail-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+/* Couleurs spécifiques stats */
+.detail-card.modified .detail-number {
+    color: #fdcb6e;
+}
+
+/* Orange */
+.detail-card.added .detail-number {
+    color: #00b894;
+}
+
+/* Vert */
+.detail-card.deleted .detail-number {
+    color: #ff7675;
+}
+
+/* Rouge */
+
+/* Responsive simple */
+@media (max-width: 768px) {
+
+    .stats-grid,
+    .details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        position: absolute;
+        left: -250px;
+        z-index: 1000;
+        box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .sidebar.active {
+        transform: translateX(250px);
+    }
+}
+
+/* --- NOUVEAUX STYLES --- */
+
+/* Titres de section */
+.section-title {
+    font-size: 1.1rem;
+    color: var(--text-color);
+    margin: 30px 0 15px 0;
+    font-weight: 600;
+    border-left: 4px solid var(--primary-color);
+    padding-left: 10px;
+}
+
+/* --- Toggle Switch (Bouton On/Off) --- */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: var(--primary-color);
+}
+
+input:focus+.slider {
+    box-shadow: 0 0 1px var(--primary-color);
+}
+
+input:checked+.slider:before {
+    transform: translateX(16px);
+}
+
+/* --- Arborescence de Fichiers (Tree View) --- */
+.file-explorer {
+    border: 1px solid #dfe6e9;
+    border-radius: 8px;
+    background: white;
+    height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.tree-item {
+    padding: 5px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.tree-item:hover {
+    background-color: #f4f5f9;
+}
+
+.tree-item.selected {
+    background-color: rgba(108, 92, 231, 0.1);
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.folder-icon {
+    color: #fdcb6e;
+}
+
+/* Jaune dossier */
+.file-icon {
+    color: #636e72;
+}
+
+/* --- Layout Paramètres (Tabs) --- */
+.settings-container {
+    display: flex;
+    gap: 30px;
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    height: calc(100vh - 140px);
+}
+
+.settings-sidebar {
+    width: 250px;
+    border-right: 1px solid #dfe6e9;
+    padding-right: 20px;
+}
+
+.settings-tab {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    border-radius: 8px;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.settings-tab.active {
+    background-color: rgba(108, 92, 231, 0.1);
+    color: var(--primary-color);
+}
+
+.settings-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Formulaires Paramètres */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #dfe6e9;
+    border-radius: 6px;
+}
+
+.form-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+/* Tables (Logs) */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.data-table th,
+.data-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.data-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge.add {
+    background: #e6fffa;
+    color: #00b894;
+}
+
+.badge.del {
+    background: #ffe5e5;
+    color: #ff7675;
+}
+
+.badge.edit {
+    background: #fff8e1;
+    color: #fdcb6e;
+}
+
+/* Zone de sélection affichage */
+.selection-info {
+    background-color: #f1f2f6;
+    padding: 10px;
+    border-radius: 6px;
+    margin: 15px 0;
+    font-family: monospace;
+    color: var(--primary-color);
+}
+
+/* Modification de l'affichage du chemin pour en faire un input */
+input.path-display {
+    flex: 1;
+    background: #fff;
+    padding: 8px 12px;
+    border: 1px solid #dfe6e9;
+    border-radius: 6px;
+    font-family: 'Segoe UI', monospace;
+    /* Police lisible pour les chemins */
+    font-size: 0.95rem;
+    color: var(--text-color);
+    outline: none;
+    transition: all 0.2s;
+}
+
+input.path-display:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+}
+
+/* Classe utilitaire pour l'animation d'erreur (optionnel, pour le visuel) */
+.input-error {
+    animation: shake 0.3s;
+    border-color: #ff7675 !important;
+    background-color: #fff5f5 !important;
+}
+
+@keyframes shake {
+    0% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-5px);
+    }
+
+    50% {
+        transform: translateX(5px);
+    }
+
+    75% {
+        transform: translateX(-5px);
+    }
+
+    100% {
+        transform: translateX(0);
+    }
+}

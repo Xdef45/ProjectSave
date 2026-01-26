@@ -2,12 +2,12 @@ use actix_web::{post,web, cookie::Cookie, HttpResponse};
 use crate::authentification::auth::{Auth, Login};
 
 #[post("/signin")]
-async fn signin(id: web::Json<Login>) -> HttpResponse{
+async fn signin(id: web::Json<Login>, auth: web::Data<Auth>) -> HttpResponse{
     let login= Login{
         username: id.username.clone(), 
         password: id.password.clone()
     };
-    let token = Auth.signin(login).await.expect("Le token n'as pas pu se créer");
+    let token = auth.signin(login).await.expect("Le token n'as pas pu se créer");
     let cookie = Cookie::build("Bearer", token)
     .path("/")
     .secure(true)

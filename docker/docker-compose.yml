@@ -1,0 +1,67 @@
+name: strongholder
+services:
+  borg-server:
+    build: "./alpine docker"
+    container_name: borg_server
+    ports:
+      - "2222:22"
+    volumes:
+      - SAVE_FOLDER:/var/backups/borg
+    restart: unless-stopped
+    networks:
+      - backup_net
+
+  db:
+    image: mariadb:12.2-rc
+    container_name: strongholder-database
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql 
+      - ./mariadb:/docker-entrypoint-initdb.d
+    networks:
+      - backend_net
+
+  api:
+    build: ../backend/strongholer
+    container_name: api
+    restart: always
+    environment:
+      DB_HOST: ${MARIADB_HOST}
+      DB_USER: ${MARIADB_USER}
+      DB_PASSWORD: ${MARIADB_PASSWORD}
+      DB_PORT: ${MARIADB_PORT}
+      DB: ${MARIADB_DATABASE}
+      JWT_SECRET: ${JWT_SECRET}
+    ports: 
+      - "80:8080"
+    networks:
+      - backend_net
+
+
+  web:
+    image: nginx:1.25-alpine
+    container_name: web_server
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - backend_net
+
+volumes:
+  db_data: 
+  SAVE_FOLDER:
+
+networks:
+  backend_net:
+    driver: bridge
+  backup_net:
+    driver: bridge
