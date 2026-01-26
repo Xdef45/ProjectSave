@@ -1,8 +1,7 @@
 use actix_web::{post, HttpResponse, HttpRequest, web};
-use std::process::Command;
-use async_std::{fs,prelude::*};
+use async_std::{fs,prelude::*, process::Command};
 use actix_multipart::Multipart;
-use crate::authentification::auth::{Auth, Credentials};
+use crate::authentification::auth::Auth;
 const CLIENT_DIRECTORY: &str = "/"; 
 
 const MAX_FILE_SIZE_SSH_KEY: usize = 50 * 1024 * 1024;
@@ -46,6 +45,6 @@ async fn send_ssh_key(req: HttpRequest, mut payload: Multipart, auth: web::Data<
     /* Execution du script d'ajout de la clé ssh */
     let _ = Command::new("/usr/local/sbin/install_client_key.sh")
     .args(&[id.id, filepath])
-    .output().expect("L'installation de la clé ssh client n'a pas fonctionné");
+    .output().await.expect("L'installation de la clé ssh client n'a pas fonctionné");
     HttpResponse::Ok().finish()
 }

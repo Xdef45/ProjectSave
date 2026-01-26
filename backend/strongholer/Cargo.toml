@@ -21,7 +21,7 @@ features = ["cookies"]
 
 [dependencies.async-std]
 version = "1.13.2"
-features = ["attributes"]
+features = ["attributes", "unstable"]
 
 [dependencies.jsonwebtoken]
 version = "10.2.0"
