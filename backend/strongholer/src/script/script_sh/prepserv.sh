@@ -105,7 +105,7 @@ if [ ! -f "${SERVER_TO_CLIENT_KEY}" ]; then
 fi
 
 # fichier temp pr clés borg
-if [ ! -f "${TMP_BASE}" ]; then
+if [ ! -f "${TMPBASE}" ]; then
   install -d -m 0700 -o backup -g backup "${TMPBASE}"
 fi
 
