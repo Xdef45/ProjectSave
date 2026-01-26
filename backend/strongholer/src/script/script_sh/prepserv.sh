@@ -24,7 +24,7 @@ CREATE_USER_SCRIPT="/usr/local/sbin/create_user.sh"
 INSTALL_CLIENT_KEY_SCRIPT="/usr/local/sbin/install_client_key.sh"
 SERVER_CLEANUP_SCRIPT="/usr/local/sbin/server_cleanup_key.sh"
 
-
+TMPBASE="/tmp/borgkey"
 
 SUDOERS_TUNNEL="/etc/sudoers.d/tunnel-backup"
 
@@ -102,6 +102,11 @@ if [ ! -f "${SERVER_TO_CLIENT_KEY}" ]; then
   ssh-keygen -t ed25519 -a 64 -f "${SERVER_TO_CLIENT_KEY}" -N "" -C "server_to_client"
   chmod 0600 "${SERVER_TO_CLIENT_KEY}"
   chmod 0644 "${SERVER_TO_CLIENT_KEY}.pub"
+fi
+
+# fichier temp pr clés borg
+if [ ! -f "${TMP_BASE}" ]; then
+  install -d -m 0700 -o backup -g backup "${TMPBASE}"
 fi
 
 # installation clé tunnel

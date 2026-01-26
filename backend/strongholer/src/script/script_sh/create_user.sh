@@ -10,7 +10,7 @@ fi
 
 # --- Global paths / prerequisites (prepared by prepserv.sh) ---
 SECRET_FILE="/etc/backup_secrets/key.pass"
-TMPBASE="/run/borgkey"
+TMPBASE="/tmp/borgkey"
 TUNNEL_STATE_BASE="/var/lib/tunnel/clients"
 
 SERVER_KEYS_DIR="/etc/backup_server_keys"   # plus clair que /etc/.ssh
