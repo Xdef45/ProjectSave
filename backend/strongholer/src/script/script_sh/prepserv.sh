@@ -2,8 +2,6 @@
 set -euo pipefail
 set -x
 
-
-
 # config
 BACKUP_USER="backup"
 BACKUP_HOME="/srv/repos"
@@ -55,18 +53,6 @@ need_root
 
 echo "[prepareserv] Installing packages"
 pkg_install
-
-echo "[prepareserv] Ensure /usr/local/sbin exists"
-install -d -o root -g root -m 0755 /usr/local/sbin
-
-echo "[prepserv] Install all local .sh scripts to /usr/local/sbin"
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-for f in "${SCRIPT_DIR}"/*.sh; do
-  [ -e "$f" ] || continue
-  install -m 0755 -o root -g root "$f" "/usr/local/sbin/$(basename "$f")"
-done
 
 # === Users ===
 echo "[prepareserv] Ensure users"
