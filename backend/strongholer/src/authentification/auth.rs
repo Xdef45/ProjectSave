@@ -179,6 +179,21 @@ impl Auth {
         };
     }
 
+    pub fn decode_token(token_jwt: &String) -> Credentials{
+        let jwt_secret=env::var("JWT_SECRET").expect("JWT_SECRET inexistant");
+        let validation = Validation::new(Algorithm::HS384);
+        let token = decode::<Credentials>(
+                &token_jwt,
+                &DecodingKey::from_secret(jwt_secret.as_bytes()),
+                &validation
+            ).expect("le decodage du token c'est mal déroulé");
+        let credentials =  Credentials { 
+            exp: token.claims.exp, 
+            id: token.claims.id, 
+            kdf: token.claims.kdf };
+        return credentials
+    }
+
     fn create_token(&self, credentials: &Credentials) -> String{
         /* Récupère la variable d'environnement */
         let jwt_secret=env::var("JWT_SECRET").expect("JWT_SECRET inexistant");
