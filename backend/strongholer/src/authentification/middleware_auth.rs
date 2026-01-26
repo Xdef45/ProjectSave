@@ -5,35 +5,27 @@ pub async fn authentification_middleware(
     req: ServiceRequest,
     next: Next<BoxBody>,
 ) -> Result<ServiceResponse<BoxBody>, Error> {
+    // Les route signin et siginup sont exempté
     let path = req.path().to_string();
     if path == "/api/signin".to_string() || path == "/api/signup".to_string() {
         return Ok(next.call(req).await?.map_into_boxed_body())
     }
-    let auth = match req.app_data::<web::Data<Auth>>(){
-        Some(auth) => auth,
-        None => return Ok(req.into_response(HttpResponse::Ok().body("Error")))
+
+    // Récupération de auth
+    let Some(auth) = req.app_data::<web::Data<Auth>>() else{
+        return Ok(req.into_response(HttpResponse::Ok().body("Error")))
     };
-    // est ce que le cookie existe ?
-    let cookie = match req.cookie("Bearer"){
-        Some(cookie)=>cookie,
-        None => return Ok(req.into_response(HttpResponse::Ok().body("Pas de cookie Bearer")))
+
+    // Vérification de la présence du cookie Bearer
+    let Some(cookie) = req.cookie("Bearer") else{
+        return Ok(req.into_response(HttpResponse::Ok().body("Pas de cookie Bearer")))
     };
+
+    // Vérification de l'authentification
     let (bearer_state, (result, _)) = auth.validation(cookie.value().to_string());
-    if bearer_state == BearerState::Valid {
-        return Ok(next.call(req).await?.map_into_boxed_body())
-    }
-    if bearer_state == BearerState::Refresh{
-        let mut res = next.call(req).await?;
-        let cookie = Cookie::build("Bearer", result.expect(""))
-                .path("/")
-                .secure(true)
-                .http_only(true)
-                .finish();
-        let resc: &mut HttpResponse= res.response_mut();
-        resc.add_cookie(&cookie)?;
-        return Ok(res.map_into_boxed_body())
-    }
+    
     if bearer_state == BearerState::Expired{
+        // Si expirer suppression du cookie
         let cookie = Cookie::build("Bearer", "")
                 .path("/")
                 .secure(true)
@@ -43,10 +35,25 @@ pub async fn authentification_middleware(
         return Ok(req.into_response(HttpResponse::Ok()
         .cookie(cookie)
         .body("Token expiré")))
-    }
-    // invoke the wrapped middleware or service
-    
-    // post-processing
+    }else{
+        // Lancement du service
+        let mut res = next.call(req).await?;
 
-    Ok(next.call(req).await?.map_into_boxed_body())
+        if bearer_state == BearerState::Valid {
+            return Ok(res.map_into_boxed_body())
+        } else if bearer_state == BearerState::Refresh{
+            
+            let cookie = Cookie::build("Bearer", result.expect(""))
+                    .path("/")
+                    .secure(true)
+                    .http_only(true)
+                    .finish();
+
+            let resc: &mut HttpResponse= res.response_mut();
+            resc.add_cookie(&cookie)?;
+            return Ok(res.map_into_boxed_body())
+        } else{
+            Ok(res.into_response(HttpResponse::BadRequest().body("Erreur")))
+        }
+    }
 }
