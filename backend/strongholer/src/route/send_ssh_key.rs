@@ -1,9 +1,9 @@
 use actix_web::{post, HttpResponse, HttpRequest, web};
-use async_std::{fs,prelude::*, process::Command};
 use actix_multipart::Multipart;
+use futures_util::StreamExt as _;
 use crate::authentification::auth::Auth;
-const CLIENT_DIRECTORY: &str = "/"; 
-
+const CLIENT_DIRECTORY: &str = "/srv/repot"; 
+use tokio::{process::Command, fs, io::AsyncWriteExt};
 const MAX_FILE_SIZE_SSH_KEY: usize = 50 * 1024 * 1024;
 
 #[post("send_ssh_key")]

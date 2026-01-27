@@ -20,8 +20,8 @@ RUN cargo build
 
 # We do not need the Rust toolchain to run the binary!
 FROM debian:13.3 AS runtime
-COPY --from=builder /app/target/debug/strongholer /usr/local/bin
 COPY src/script/script_sh /usr/local/bin
 WORKDIR /usr/local/bin/
 RUN sh install_all.sh
+COPY --from=builder /app/target/debug/strongholer /usr/local/bin
 ENTRYPOINT ["strongholer"]

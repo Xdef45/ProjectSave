@@ -26,7 +26,7 @@ DROP TABLE IF EXISTS `Credentials`;
 CREATE TABLE `Credentials` (
   `id` varchar(255) NOT NULL,
   `username` varchar(255) NOT NULL,
-  `encrypt_master_key_2` varchar(80) NOT NULL,
+  `encrypt_master_key_2` varchar(1136) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `encrypt_master_key_2` (`encrypt_master_key_2`)

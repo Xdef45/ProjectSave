@@ -2,7 +2,7 @@ use sqlx::{mysql, MySqlPool};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use openssl::rand::rand_bytes;
+use tokio::{fs, process::Command};
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
 use argon2::{Argon2, Params};
 use std::env;
@@ -17,6 +17,8 @@ const HASH_LENGTH: usize = 32;
 //Validiter d'un token Bearer
 const EXPIRE_TIME: u64 = 60*20;
 const REFRESH_TIME: u64 = 60*10;
+
+const CLIENT_DIRECTORY: &str = "/srv/repos"; 
 
 #[derive(Deserialize)]
 pub struct Login{
@@ -84,11 +86,22 @@ impl Auth {
             return Err(LoginState::AlreadyExist);
         }
 
-        /* Ajout de l'utilisateur à la base de donnée */
+        /* Création des id client */
         let kdf_client:[u8; 32]  = self.create_kdf(&login.password, &login.username).await;
         let uuid = Uuid::new_v4().hyphenated().to_string();
 
-        let key_encrypted = self.create_master_key_2(&kdf_client);
+        // Création du répertoire utilisateur
+        let _ = Command::new("create_user.sh")
+        .args(&[&uuid])
+        .output().await.expect("L'installation de la clé ssh client n'a pas fonctionné");
+
+        // Dérivation de la clé
+        let path_key = format!("{}/{}/bootstrap/{}.key", CLIENT_DIRECTORY,uuid, uuid).to_string();
+        let master_key = fs::read_to_string(path_key).await
+        .expect("Ouverture du fichier à échoué");
+        
+
+        let key_encrypted = self.create_master_key_2(&kdf_client, master_key);
 
         /* Ajout de l'utilisateur dans la base de données */
         let query = sqlx::query("INSERT INTO Credentials (id , username, encrypt_master_key_2) VALUES(?,?,?)")
@@ -102,16 +115,13 @@ impl Auth {
         Ok(self.create_token(&credentials))
     }
 
-    pub fn create_master_key_2(&self, kdf_client:&[u8]) -> String{
-        /* Création clé_master */
-        let mut master_key = [0u8;32];
-        rand_bytes(&mut master_key).expect("La clé master n'a pas pu être créer correctement");
-
-
+    pub fn create_master_key_2(&self, kdf_client:&[u8], master_key: String) -> String{
         /*Chiffrement clé_master_2 */
         let kdf_key = AesKey::new_encrypt(&kdf_client).expect("wrap kdf n'a pas focntionner");
-        let mut master_key_2_encrypted = [0u8; 40];
-        let _ = wrap_key(&kdf_key, None, &mut master_key_2_encrypted, &master_key).expect("Problème lors du chiffrement de la clé master 2");
+        let mut in_master_key:[u8; 560]= [0u8; 560];
+        in_master_key[..553].copy_from_slice(master_key.as_bytes());
+        let mut master_key_2_encrypted: [u8; 568]  = [0u8; 568];
+        let _ = wrap_key(&kdf_key, None, &mut master_key_2_encrypted, &in_master_key).expect("Problème lors du chiffrement de la clé master 2");
 
         /* enregistrer sur un format hexadécimal */
         return hex::encode(&master_key_2_encrypted);
