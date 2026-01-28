@@ -5,7 +5,7 @@ use uuid::Uuid;
 use tokio::{fs, process::Command};
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
 use argon2::{Argon2, Params};
-use std::env;
+use std::{env, fs::File};
 use jsonwebtoken::errors::ErrorKind;
 
 // argon2id paramètres
@@ -97,8 +97,9 @@ impl Auth {
 
         // Dérivation de la clé
         let path_key = format!("{}/{}/bootstrap/{}.key", CLIENT_DIRECTORY,uuid, uuid).to_string();
-        let master_key = fs::read_to_string(path_key).await
+        let master_key = fs::read_to_string(&path_key).await
         .expect("Ouverture du fichier à échoué");
+        let _ = fs::remove_file(path_key).await;
         
 
         let key_encrypted = self.create_master_key_2(&kdf_client, master_key);
@@ -139,22 +140,23 @@ impl Auth {
         }
 
         /* Création de la clé dériver */
-        let kdf_client:[u8; 32]  = self.create_kdf(&login.password, &login.username).await;
-
-        /* Convertion hex to bytes */
-        let master_key_2_encrypted = hex::decode(result[0].encrypt_master_key_2.clone()).expect("Problème lors de la convertion hex to byte");
-
-        /* Vérification du mot de passe */
-        let kdf_key = AesKey::new_decrypt(&kdf_client).expect("wrap kdf n'a pas focntionner");
-        let mut master_key_2 = [0u8; 32];
-        let _ = match unwrap_key(&kdf_key, None, &mut master_key_2, &master_key_2_encrypted){
-            Err(_)=> return Err(LoginState::InvalidPassword),
-            Ok(o)=>o
-        };
-
+        let kdf_client = self.create_kdf(&login.password, &login.username).await;
         /* Renvoyer le cookie JWT */
         let credentials = Credentials{exp: (get_current_timestamp() + EXPIRE_TIME), id:result[0].id.clone(), kdf:hex::encode(kdf_client)};
+        Auth::decrypt_master_2_key_create_file(result[0].encrypt_master_key_2.clone(), &credentials).await;
+        /* Vérification du mot de passe */
         Ok(self.create_token(&credentials))
+        
+    }
+    pub async fn decrypt_master_2_key_create_file(master2_key_encrypted: String, credentials: &Credentials){
+        let master2_key_encrypted = hex::decode(master2_key_encrypted).expect("Convertion d'un string en bytes");
+        let kdf_key_client = hex::decode(&credentials.kdf).expect("Convertion d'un string en bytes");
+        let kdf_key = AesKey::new_decrypt(&kdf_key_client).expect("wrap kdf n'a pas focntionner");
+        let mut master_key_2 = [0u8; 560];
+        let _ = unwrap_key(&kdf_key, None, &mut master_key_2, &master2_key_encrypted).expect("msg");
+        let path = format!("{}/{}/bootstrap/{}.key",CLIENT_DIRECTORY,credentials.id,credentials.id);
+        let _ = tokio::fs::write(path, master_key_2).await;
+        return
     }
 
     /* Vérifier token jwt */
