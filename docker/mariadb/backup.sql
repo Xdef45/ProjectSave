@@ -24,7 +24,7 @@ DROP TABLE IF EXISTS `Credentials`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Credentials` (
-  `id` varchar(255) NOT NULL,
+  `id` varchar(32) NOT NULL,
   `username` varchar(255) NOT NULL,
   `encrypt_master_key_2` varchar(1136) NOT NULL,
   PRIMARY KEY (`id`),

@@ -88,7 +88,7 @@ impl Auth {
 
         /* Création des id client */
         let kdf_client:[u8; 32]  = self.create_kdf(&login.password, &login.username).await;
-        let uuid = Uuid::new_v4().hyphenated().to_string();
+        let uuid = Uuid::new_v4().simple().to_string();
 
         // Création du répertoire utilisateur
         let _ = Command::new("create_user.sh")
@@ -118,6 +118,9 @@ impl Auth {
 
     pub fn create_master_key_2(&self, kdf_client:&[u8], master_key: String) -> String{
         /*Chiffrement clé_master_2 */
+        if master_key.len() != 553 {
+            println!("Master key plus grands que 553{:?}", master_key.len())
+        }
         let kdf_key = AesKey::new_encrypt(&kdf_client).expect("wrap kdf n'a pas focntionner");
         let mut in_master_key:[u8; 560]= [0u8; 560];
         in_master_key[..553].copy_from_slice(master_key.as_bytes());
@@ -147,6 +150,14 @@ impl Auth {
         /* Vérification du mot de passe */
         Ok(self.create_token(&credentials))
         
+    }
+    pub async fn restore_master_key_2(&self, credentials: &Credentials){
+        /* Récupération clé master 2 */
+        let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
+        let query = sqlx::query_as("SELECT id, encrypt_master_key_2 FROM Credentials WHERE id=?").bind(credentials.id.as_str());
+        let result: Vec<MysqlCredentials> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
+        Auth::decrypt_master_2_key_create_file(result[0].encrypt_master_key_2.clone(), &credentials).await;
+
     }
     pub async fn decrypt_master_2_key_create_file(master2_key_encrypted: String, credentials: &Credentials){
         let master2_key_encrypted = hex::decode(master2_key_encrypted).expect("Convertion d'un string en bytes");
