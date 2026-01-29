@@ -70,10 +70,6 @@ gpg --batch --yes --pinentry-mode loopback \
 chown root:backupsecrets "$KEY_GPG"
 chmod 0640 "$KEY_GPG"
 
-# supprimer le clair
-shred -u "$KEY_CLEAR" 2>/dev/null || rm -f "$KEY_CLEAR"
-
-
 # Lock down bootstrap file readability (tunnel user is in backupsecrets group via prepserv)
 chown root:backupsecrets "$KEY_GPG"
 chmod 0640 "$KEY_GPG"
