@@ -21,7 +21,7 @@ SERVER_TO_CLIENT_KEY="${SERVER_KEYS_DIR}/server_to_client_ed25519"
 [ -d "$TUNNEL_STATE_BASE" ] || { echo "missing $TUNNEL_STATE_BASE (prepserv.sh must create it)"; exit 1; }
 
 # --- Per-client server layout ---
-BORG_USER="borg_${CLIENT}"
+BORG_USER="$CLIENT"
 HOME_DIR="/srv/repos/${CLIENT}"
 REPO_DIR="${HOME_DIR}/repo"
 BOOTSTRAP_DIR="${HOME_DIR}/bootstrap"
