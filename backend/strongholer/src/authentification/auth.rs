@@ -5,7 +5,7 @@ use uuid::Uuid;
 use tokio::{fs, process::Command};
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
 use argon2::{Argon2, Params};
-use std::{env, fs::File};
+use std::{env, fs::File, path};
 use jsonwebtoken::errors::ErrorKind;
 
 // argon2id paramètres
@@ -91,12 +91,16 @@ impl Auth {
         let uuid = Uuid::new_v4().simple().to_string();
 
         // Création du répertoire utilisateur
-        let _ = Command::new("create_user.sh")
+        let _ = match Command::new("create_user.sh")
         .args(&[&uuid])
-        .output().await.expect("L'installation de la clé ssh client n'a pas fonctionné");
+        .output().await{
+            Ok(o)=> println!("Erreur : {}\n Sortie : {}", String::from_utf8(o.stderr).expect("msg"), String::from_utf8(o.stdout).expect("msg")),
+            Err(e)=> println!("L'installation de la clé ssh client n'a pas fonctionné")
+        };
 
         // Dérivation de la clé
         let path_key = format!("{}/{}/bootstrap/{}.key", CLIENT_DIRECTORY,uuid, uuid).to_string();
+        println!("{}", path_key);
         let master_key = fs::read_to_string(&path_key).await
         .expect("Ouverture du fichier à échoué");
         let _ = fs::remove_file(path_key).await;

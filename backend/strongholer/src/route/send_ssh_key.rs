@@ -47,7 +47,13 @@ async fn send_ssh_key(req: HttpRequest, mut payload: Multipart, auth: web::Data<
     let _ = match Command::new("install_client_key.sh")
     .args(&[credentials.id, filepath])
     .output().await{
-        Ok(_)=> return HttpResponse::Ok().finish(),
-        Err(_)=> return HttpResponse::BadRequest().finish()
-    };
+            Ok(o)=> {
+                println!("Erreur : {}\n Sortie : {}", String::from_utf8(o.stderr).expect("msg"), String::from_utf8(o.stdout).expect("msg"));
+                return HttpResponse::Ok().finish()
+            },
+            Err(e)=> {
+                println!("L'installation de la clé ssh client n'a pas fonctionné");
+                return HttpResponse::BadRequest().finish()
+            }
+        };
 }
