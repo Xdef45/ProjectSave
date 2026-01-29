@@ -46,7 +46,8 @@ pkg_install() {
     rsync \
     ca-certificates \
     util-linux \
-    sudo
+    sudo \
+    gpg-agent
 }
 
 need_root
