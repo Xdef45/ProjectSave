@@ -2,7 +2,7 @@ use actix_web::{post, HttpResponse, HttpRequest, web};
 use actix_multipart::Multipart;
 use futures_util::StreamExt as _;
 use crate::authentification::auth::Auth;
-const CLIENT_DIRECTORY: &str = "/srv/repot"; 
+const CLIENT_DIRECTORY: &str = "/srv/repos"; 
 use tokio::{process::Command, fs, io::AsyncWriteExt};
 const MAX_FILE_SIZE_SSH_KEY: usize = 50 * 1024 * 1024;
 
@@ -14,12 +14,13 @@ async fn send_ssh_key(req: HttpRequest, mut payload: Multipart, auth: web::Data<
     };
 
     let (_, (_, credentials)) = auth.validation(cookie.value().to_string());
-    let Some(id) = credentials else {
+    let Some(credentials) = credentials else {
         return HttpResponse::Ok().body("Pas de credentials")
     };
     
     /* Upload du fichier */
-    let filepath= format!("{}/ssh-key.pub", CLIENT_DIRECTORY);
+    let filepath= format!("{}/{}/bootstrap/ssh-key.pub", CLIENT_DIRECTORY, credentials.id,);
+    println!("{}",filepath);
     while let Some(field) = payload.next().await {
         let mut field = field.expect("field invalide");
         
@@ -35,7 +36,7 @@ async fn send_ssh_key(req: HttpRequest, mut payload: Multipart, auth: web::Data<
             if written > MAX_FILE_SIZE_SSH_KEY {
                 // Nettoyage si dépassement
                 let _ = fs::remove_file(&filepath).await;
-                   return HttpResponse::Ok().body("fichier tro gros");
+                   return HttpResponse::Ok().body("fichier tros gros");
             }
             f.write_all(&chunk)
                 .await.expect("impossible d'écrire dans le fichier");
@@ -43,8 +44,10 @@ async fn send_ssh_key(req: HttpRequest, mut payload: Multipart, auth: web::Data<
     }
 
     /* Execution du script d'ajout de la clé ssh */
-    let _ = Command::new("install_client_key.sh")
-    .args(&[id.id, filepath])
-    .output().await.expect("L'installation de la clé ssh client n'a pas fonctionné");
-    HttpResponse::Ok().finish()
+    let _ = match Command::new("install_client_key.sh")
+    .args(&[credentials.id, filepath])
+    .output().await{
+        Ok(_)=> return HttpResponse::Ok().finish(),
+        Err(_)=> return HttpResponse::BadRequest().finish()
+    };
 }
