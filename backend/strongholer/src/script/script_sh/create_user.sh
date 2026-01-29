@@ -52,8 +52,7 @@ if [ ! -f "${REPO_DIR}/config" ]; then
     borg init -e keyfile "$REPO_DIR"
 fi
 
-
-KEY_CLEAR="${BOOTSTRAP_DIR}/${CLIENT}.key"
+KEY_CLEAR="${HOME_DIR}/.config/borg/keys/srv_repos_${CLIENT}_repo"
 KEY_GPG="${BOOTSTRAP_DIR}/${CLIENT}.gpg"
 
 # export keyfile clair (écrit par le user, donc OK)
