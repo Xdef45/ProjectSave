@@ -99,7 +99,7 @@ impl Auth {
         };
 
         // Dérivation de la clé
-        let path_key = format!("{}/{}/bootstrap/{}.key", CLIENT_DIRECTORY,uuid, uuid).to_string();
+        let path_key = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY,uuid, uuid).to_string();
         println!("{}", path_key);
         let master_key = fs::read_to_string(&path_key).await
         .expect("Ouverture du fichier à échoué");
