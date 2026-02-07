@@ -5,7 +5,7 @@ use uuid::Uuid;
 use tokio::{fs, process::Command};
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
 use argon2::{Argon2, Params};
-use std::{env, fs::File, path};
+use std::{env};
 use jsonwebtoken::errors::ErrorKind;
 
 // argon2id paramètres
@@ -95,7 +95,7 @@ impl Auth {
         .args(&[&uuid])
         .output().await{
             Ok(o)=> println!("Erreur : {}\n Sortie : {}", String::from_utf8(o.stderr).expect("msg"), String::from_utf8(o.stdout).expect("msg")),
-            Err(e)=> println!("L'installation de la clé ssh client n'a pas fonctionné")
+            Err(_)=> println!("L'installation de la clé ssh client n'a pas fonctionné")
         };
 
         // Dérivation de la clé

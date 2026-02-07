@@ -13,12 +13,12 @@ pub async fn authentification_middleware(
 
     // Récupération de auth
     let Some(auth) = req.app_data::<web::Data<Auth>>() else{
-        return Ok(req.into_response(HttpResponse::Ok().body("Error")))
+        return Ok(req.into_response(HttpResponse::BadRequest().body("Error variable app_data Auth inexistante")))
     };
 
     // Vérification de la présence du cookie Bearer
     let Some(cookie) = req.cookie("Bearer") else{
-        return Ok(req.into_response(HttpResponse::Ok().body("Pas de cookie Bearer")))
+        return Ok(req.into_response(HttpResponse::BadRequest().body("Pas de cookie Bearer")))
     };
 
     // Vérification de l'authentification
@@ -53,7 +53,7 @@ pub async fn authentification_middleware(
             resc.add_cookie(&cookie)?;
             return Ok(res.map_into_boxed_body())
         } else{
-            Ok(res.into_response(HttpResponse::BadRequest().body("Erreur")))
+            Ok(res.into_response(HttpResponse::BadRequest().body("Erreur inconnue middleware")))
         }
     }
 }

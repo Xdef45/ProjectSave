@@ -1,5 +1,5 @@
 use actix_web::{post,web, cookie::Cookie, HttpResponse};
-use crate::authentification::auth::{Auth, Login};
+use crate::authentification::auth::{Auth, Login, LoginState};
 
 #[post("/signin")]
 async fn signin(id: web::Json<Login>, auth: web::Data<Auth>) -> HttpResponse{
@@ -7,7 +7,17 @@ async fn signin(id: web::Json<Login>, auth: web::Data<Auth>) -> HttpResponse{
         username: id.username.clone(), 
         password: id.password.clone()
     };
-    let token = auth.signin(login).await.expect("Le token n'as pas pu se créer");
+    let token = match auth.signin(login).await{
+        Ok(token)=>token,
+        Err(e)=>{
+            if e == LoginState::NotSignup{
+                return HttpResponse::BadRequest().body("L'utilisateur n'est pas enregistré")
+            }else{
+                return HttpResponse::BadRequest().body("Erreur inconnue")
+            }
+
+        }
+    };
     let cookie = Cookie::build("Bearer", token)
     .path("/")
     .secure(true)
