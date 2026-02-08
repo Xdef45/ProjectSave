@@ -1,15 +1,21 @@
 name: strongholder
 services:
-  # borg-server:
-  #   build: "./alpine docker"
-  #   container_name: borg_server
-  #   ports:
-  #     - "2222:22"
-  #   volumes:
-  #     - SAVE_FOLDER:/var/backups/borg
-  #   restart: unless-stopped
-  #   networks:
-  #     - backup_net
+  borg-server:
+    build: ./borg
+    container_name: strongholder-borg
+    ports:
+      - "2222:22"
+    volumes:
+      - srv_repot:/srv
+      - ./passwd:/etc/passwd
+      - ./shadow:/etc/shadow
+      - ./group:/etc/group
+      - ./gshadow:/etc/gshadow
+      - srv_home:/home
+      - backup_server_key:/etc/backup_server_keys/
+    restart: unless-stopped
+    networks:
+      - backup_net
 
   db:
     image: mariadb:12.2-rc
@@ -30,7 +36,7 @@ services:
     build: 
       context: ..
       dockerfile: backend/strongholer/Dockerfile
-    container_name: api
+    container_name: strongholder-api
     restart: always
     environment:
       DB_HOST: ${MARIADB_HOST}
@@ -41,14 +47,19 @@ services:
       JWT_SECRET: ${JWT_SECRET}
     volumes:
       - srv_repot:/srv
-      - ./borg/server_scripts:/usr/local/bin/server_scripts
+      - ./passwd:/etc/passwd
+      - ./shadow:/etc/shadow
+      - ./group:/etc/group
+      - ./gshadow:/etc/gshadow
+      - srv_home:/home
+      - backup_server_key:/etc/backup_server_keys/
     networks:
       - backend_net
 
 
   web:
     image: nginx:1.25-alpine
-    container_name: web_server
+    container_name: strongholder-web_server
     ports:
       - "443:443"
     volumes:
@@ -63,8 +74,13 @@ services:
 
 volumes:
   db_data: 
-  SAVE_FOLDER:
   srv_repot:
+  srv_passwd:
+  srv_shadow:
+  srv_group:
+  srv_gshadow:
+  srv_home:
+  backup_server_key:
 
 networks:
   backend_net:
