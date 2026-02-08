@@ -5,7 +5,7 @@ CLIENT="${1:?Usage: $0 CLIENT /path/to/pubkey}"
 
 PUBKEY_PATH="${2:-/srv/repos/${CLIENT}/bootstrap/borg_${CLIENT}.pub}"
 
-BORG_USER="borg_${CLIENT}"
+BORG_USER="$CLIENT"
 REPO_DIR="/srv/repos/${CLIENT}/repo"
 
 # --- checks ---

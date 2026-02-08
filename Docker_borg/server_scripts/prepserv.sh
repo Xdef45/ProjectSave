@@ -24,7 +24,7 @@ CREATE_USER_SCRIPT="/usr/local/sbin/create_user.sh"
 INSTALL_CLIENT_KEY_SCRIPT="/usr/local/sbin/install_client_key.sh"
 SERVER_CLEANUP_SCRIPT="/usr/local/sbin/server_cleanup_key.sh"
 
-
+TMPBASE="/tmp/borgkey"
 
 SUDOERS_TUNNEL="/etc/sudoers.d/tunnel-backup"
 
@@ -35,36 +35,25 @@ CLEANUP_SCRIPT="/usr/local/sbin/server_cleanup_key.sh"
 
 #on set l'installatiion des packages
 need_root() { [ "$(id -u)" -eq 0 ] || { echo "Run as root." >&2; exit 1; }; }
-pkg_install() {
-  export DEBIAN_FRONTEND=noninteractive
-  apt-get update -y
-  apt-get install -y --no-install-recommends \
-    openssh-server openssh-client \
-    borgbackup \
-    gpg \
-    acl \
-    rsync \
-    ca-certificates \
-    util-linux\
-    sudo
-}
+# pkg_install() {
+#   export DEBIAN_FRONTEND=noninteractive
+#   apt-get update -y
+#   apt-get install -y --no-install-recommends \
+#     openssh-server openssh-client \
+#     borgbackup \
+#     gpg \
+#     acl \
+#     rsync \
+#     ca-certificates \
+#     util-linux \
+#     sudo \
+#     gpg-agent
+# }
 
 need_root
 
-echo "[prepareserv] Installing packages"
-pkg_install
-
-echo "[prepareserv] Ensure /usr/local/sbin exists"
-install -d -o root -g root -m 0755 /usr/local/sbin
-
-echo "[prepserv] Install all local .sh scripts to /usr/local/sbin"
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-for f in "${SCRIPT_DIR}"/*.sh; do
-  [ -e "$f" ] || continue
-  install -m 0755 -o root -g root "$f" "/usr/local/sbin/$(basename "$f")"
-done
+# echo "[prepareserv] Installing packages"
+# pkg_install
 
 # === Users ===
 echo "[prepareserv] Ensure users"
@@ -73,7 +62,7 @@ if ! id "${BACKUP_USER}" >/dev/null 2>&1; then
 fi
 
 if ! id "${TUNNEL_USER}" >/dev/null 2>&1; then
-  useradd -d "${TUNNEL_HOME}" -m -s /usr/sbin/nologin "${TUNNEL_USER}"
+  useradd -d "${TUNNEL_HOME}" -m -s /bin/sh "${TUNNEL_USER}"
 fi
 
 # repos 
@@ -114,6 +103,11 @@ if [ ! -f "${SERVER_TO_CLIENT_KEY}" ]; then
   ssh-keygen -t ed25519 -a 64 -f "${SERVER_TO_CLIENT_KEY}" -N "" -C "server_to_client"
   chmod 0600 "${SERVER_TO_CLIENT_KEY}"
   chmod 0644 "${SERVER_TO_CLIENT_KEY}.pub"
+fi
+
+# fichier temp pr clés borg
+if [ ! -f "${TMPBASE}" ]; then
+  install -d -m 0700 -o backup -g backup "${TMPBASE}"
 fi
 
 # installation clé tunnel
@@ -159,10 +153,15 @@ if command -v visudo >/dev/null 2>&1; then
   visudo -cf "${SUDOERS_BACKUP}" || { echo "[prepareserv] ERROR: invalid sudoers file ${SUDOERS_BACKUP}" >&2; exit 1; }
 fi
 
+echo "[install_all] Running gpggen"
+/usr/local/sbin/gen_gpg_passphrase.sh
 
 # config pr tunnel ssh au cas où
 echo "[prepareserv] Ensure sshd drop-in for forwarding exists"
 install -d -m 0755 /etc/ssh/sshd_config.d
+
+echo "Server->client pubkey (à mettre côté client dans authorized_keys borghelper):"
+cat "${SERVER_TO_CLIENT_KEY}.pub"
 
 cat > /etc/ssh/sshd_config.d/50-backup-tunnel.conf <<'EOF'
 # Backup tunnel baseline
@@ -172,13 +171,9 @@ X11Forwarding no
 PermitTunnel no
 EOF
 
-systemctl reload ssh || systemctl reload sshd || true
+# ssh-keygen -A
 
-echo
+exec /usr/sbin/sshd -D -e
+
+
 echo "OK: backup_user=${BACKUP_USER}, repos=${BACKUP_HOME}, secrets=${SECRET_DIR}, server_keys=${SERVER_KEYS_DIR}"
-
-echo "[prepserv] Running gpggen"
-/usr/local/sbin/gen_gpg_passphrase.sh
-
-echo "Server->client pubkey (à mettre côté client dans authorized_keys borghelper):"
-cat "${SERVER_TO_CLIENT_KEY}.pub"

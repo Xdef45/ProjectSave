@@ -20,6 +20,7 @@ for s in \
   server_cleanup_key.sh \
   create_user.sh \
   install_client_key.sh \
+  install_client_tunnel_key.sh \
   prepserv.sh \
   gen_gpg_passphrase.sh
 do
@@ -28,7 +29,7 @@ done
 
 cp -a "${SRC_DIR}/client_folder" "${DST_DIR}/client_folder"
 
+echo "[install_all] Done."
+
 echo "[install_all] Running prepserv.sh"
 /usr/local/sbin/prepserv.sh
-
-echo "[install_all] Done."

@@ -3,6 +3,7 @@
 #sudo ./gen_gpg_passphrase.sh
 
 set -euo pipefail
+set -x
 
 PASSFILE="/etc/backup_secrets/key.pass"
 GROUP="backupsecrets"
