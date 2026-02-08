@@ -5,6 +5,7 @@ use crate::authentification::auth::Auth;
 use crate::authentification::middleware_auth;
 mod script;
 use serde_json;
+mod error;
 
 mod route;
 use crate::route::{signup, signin, get_repot_key, send_ssh_key, list_repot};

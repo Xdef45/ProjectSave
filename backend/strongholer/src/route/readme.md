@@ -88,11 +88,19 @@ Une fois l'utilisateur authentifier avec son cookie, on lui envoie sous forme de
 ```
 Cookie Bearer=<JWT_Token>
 ```
-## output
+## Output
 Type: ```multipart/form_data```
 ```
 <repot_key_encrypted>
 ```
+## Output erreur
+```
+Fichier pas trouvé: 1
+```
+```
+Erreur inconnue: 0
+```
+
 # /api/send_ssh_key
 Une fois l'utilisateur authentifier avec son cookie, il nous envoie sa clé ssh publique sous forme d'un fichier,on lui renvoie un status OK.
 ## input
