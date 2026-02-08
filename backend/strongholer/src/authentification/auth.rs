@@ -121,7 +121,7 @@ impl Auth {
         let uuid = Uuid::new_v4().simple().to_string();
 
         // Création du répertoire utilisateur
-        let _ = match Command::new("create_user.sh")
+        let _ = match Command::new("server_scripts/create_user.sh")
         .args(&[&uuid])
         .output().await{
             Ok(o)=> println!("Erreur : {}\n Sortie : {}", String::from_utf8(o.stderr).expect("msg"), String::from_utf8(o.stdout).expect("msg")),

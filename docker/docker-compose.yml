@@ -27,7 +27,9 @@ services:
       - backend_net
 
   api:
-    build: ../backend/strongholer
+    build: 
+      context: ..
+      dockerfile: backend/strongholer/Dockerfile
     container_name: api
     restart: always
     environment:
@@ -39,6 +41,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
     volumes:
       - srv_repot:/srv
+      - ./borg/server_scripts:/usr/local/bin/server_scripts
     networks:
       - backend_net
 
