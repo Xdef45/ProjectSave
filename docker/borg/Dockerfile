@@ -14,5 +14,7 @@ EXPOSE 22
 COPY server_scripts/ /usr/local/sbin/scripts/
 
 RUN chmod +x /usr/local/sbin/scripts/*.sh
-    
-ENTRYPOINT ["/usr/local/sbin/scripts/install_all.sh"]
+
+RUN /usr/local/sbin/scripts/install_all.sh
+
+ENTRYPOINT ["bash", "-c", "exec /usr/sbin/sshd -D"]

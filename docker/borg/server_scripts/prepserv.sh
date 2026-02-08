@@ -177,9 +177,4 @@ X11Forwarding no
 PermitTunnel no
 EOF
 
-# ssh-keygen -A
-
-exec /usr/sbin/sshd -D -e
-
-
 echo "OK: backup_user=${BACKUP_USER}, repos=${BACKUP_HOME}, secrets=${SECRET_DIR}, server_keys=${SERVER_KEYS_DIR}"
