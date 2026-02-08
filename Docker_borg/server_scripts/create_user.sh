@@ -10,7 +10,7 @@ fi
 
 # --- Global paths / prerequisites (prepared by prepserv.sh) ---
 SECRET_FILE="/etc/backup_secrets/key.pass"
-TMPBASE="/run/borgkey"
+TMPBASE="/tmp/borgkey"
 TUNNEL_STATE_BASE="/var/lib/tunnel/clients"
 
 SERVER_KEYS_DIR="/etc/backup_server_keys"   # plus clair que /etc/.ssh
@@ -21,7 +21,7 @@ SERVER_TO_CLIENT_KEY="${SERVER_KEYS_DIR}/server_to_client_ed25519"
 [ -d "$TUNNEL_STATE_BASE" ] || { echo "missing $TUNNEL_STATE_BASE (prepserv.sh must create it)"; exit 1; }
 
 # --- Per-client server layout ---
-BORG_USER="borg_${CLIENT}"
+BORG_USER="$CLIENT"
 HOME_DIR="/srv/repos/${CLIENT}"
 REPO_DIR="${HOME_DIR}/repo"
 BOOTSTRAP_DIR="${HOME_DIR}/bootstrap"
@@ -33,7 +33,7 @@ KEY_TMP_CLEAR="${TMPBASE}/${CLIENT}.key"
 # --- Create borg user (no interactive login) ---
 if ! id -u "$BORG_USER" >/dev/null 2>&1; then
   # -M: do not auto-create home (we create with correct perms ourselves)
-  useradd -M -d "$HOME_DIR" -s /usr/sbin/nologin "$BORG_USER"
+  useradd -M -d "$HOME_DIR" -s /bin/sh "$BORG_USER"
 fi
 
 # Ensure home + repo dirs with strict perms
@@ -52,8 +52,7 @@ if [ ! -f "${REPO_DIR}/config" ]; then
     borg init -e keyfile "$REPO_DIR"
 fi
 
-
-KEY_CLEAR="${BOOTSTRAP_DIR}/${CLIENT}.key"
+KEY_CLEAR="${HOME_DIR}/.config/borg/keys/srv_repos_${CLIENT}_repo"
 KEY_GPG="${BOOTSTRAP_DIR}/${CLIENT}.gpg"
 
 # export keyfile clair (écrit par le user, donc OK)
@@ -70,10 +69,6 @@ gpg --batch --yes --pinentry-mode loopback \
 
 chown root:backupsecrets "$KEY_GPG"
 chmod 0640 "$KEY_GPG"
-
-# supprimer le clair
-shred -u "$KEY_CLEAR" 2>/dev/null || rm -f "$KEY_CLEAR"
-
 
 # Lock down bootstrap file readability (tunnel user is in backupsecrets group via prepserv)
 chown root:backupsecrets "$KEY_GPG"

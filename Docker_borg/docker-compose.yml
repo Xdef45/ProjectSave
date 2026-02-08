@@ -1,0 +1,11 @@
+services:
+  borg-server:
+    build: .
+    container_name: borg_test_serv
+    ports:
+      - "2222:22"
+    volumes:
+      - SAVE_FOLDER:/var/backups/borg
+
+volumes:
+  SAVE_FOLDER:
