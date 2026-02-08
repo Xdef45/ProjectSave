@@ -5,14 +5,18 @@ use uuid::Uuid;
 use tokio::{fs, process::Command};
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
 use argon2::{Argon2, Params};
-use std::{env};
+use std::{env, f32::MIN, result};
 use jsonwebtoken::errors::ErrorKind;
+use passcheck::PasswordChecker;
 
 // argon2id paramètres
 const MEMORY_COST: u32 = 64*1024;
 const ITERATION_COST: u32 = 3;
 const PARALLELISM_COST: u32 = 4;
 const HASH_LENGTH: usize = 32;
+
+// Password Settings
+const MIN_PASSWORD_LENGTH: usize = 3;
 
 //Validiter d'un token Bearer
 const EXPIRE_TIME: u64 = 60*20;
@@ -35,12 +39,25 @@ pub struct Credentials{
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum LoginState{
-    AlreadyExist,
     NotSignup,
+    KDFError
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum LogupState{
+    KDFError,
+    AlreadyExist,
     InvalidPassword,
     /// username inférieur à 5
     UsernameTooShort,
-    Valid
+    /// Password length inférieur à 12
+    PasswordTooShort,
+    /// Pas de caractère spécial
+    SpecialCharMissing,
+    /// Pas de majuscule
+    MajusculeMissing,
+    /// Pas de chiffre
+    NumberMissing
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -80,26 +97,30 @@ impl Auth {
         .database(&env::var("DB").expect("DB inexistant"));
         Self{db: MySqlPool::connect_with(opt).await.expect("Impossible de se connecter à la DB")}
     }
-    pub async fn signup(&self, login: &mut Login) -> Result<String, LoginState> {
+    pub async fn signup(&self, login: Login) -> Result<String, LogupState> {
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
         /* Vérification si l'utilisateur existe */
         let query = sqlx::query("SELECT username FROM Credentials WHERE username=?").bind(login.username.as_str());
         let number_return_line: Vec<mysql::MySqlRow> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
         if number_return_line.len() > 0 {
-            return Err(LoginState::AlreadyExist);
+            return Err(LogupState::AlreadyExist);
         }
 
         // Vérification de la validité des Login
-        let validation_state_login = Auth::validation_login(&login);
-        if validation_state_login != LoginState::Valid{
+        if let Some(validation_state_login) = Auth::validation_login(&login){
             return Err(validation_state_login);
         }
 
-        Auth::corrrect_username_length(login);
-        println!("{}",login.username);
+        let username_for_encryption= Auth::corrrect_username_length(&login);
 
         /* Création des id client */
-        let kdf_client:[u8; 32]  = self.create_kdf(&login.password, &login.username).await;
+                let kdf_client = match self.create_kdf(&login.password, &username_for_encryption).await {
+            Some(kdf_client) => kdf_client,
+            None => {
+                println!("Erreur lors de la création du kdf");
+                return Err(LogupState::KDFError);
+            }
+        };
         let uuid = Uuid::new_v4().simple().to_string();
 
         // Création du répertoire utilisateur
@@ -159,7 +180,14 @@ impl Auth {
         }
 
         /* Création de la clé dériver */
-        let kdf_client = self.create_kdf(&login.password, &login.username).await;
+        let username_for_encryption= Auth::corrrect_username_length(&login);
+        let kdf_client = match self.create_kdf(&login.password, &username_for_encryption).await {
+            Some(kdf_client) => kdf_client,
+            None => {
+                println!("Erreur lors de la création du kdf");
+                return Err(LoginState::KDFError);
+            }
+        };
         /* Renvoyer le cookie JWT */
         let credentials = Credentials{exp: (get_current_timestamp() + EXPIRE_TIME), id:result[0].id.clone(), kdf:hex::encode(kdf_client)};
         Auth::decrypt_master_2_key_create_file(result[0].encrypt_master_key_2.clone(), &credentials).await;
@@ -167,22 +195,41 @@ impl Auth {
         Ok(self.create_token(&credentials))
         
     }
-    fn validation_login(login: &Login)->LoginState{
-        if login.username.len() < 5{
-            return LoginState::UsernameTooShort
-        }else{
-            return LoginState::Valid;
+    fn validation_login(login: &Login)->Option<LogupState>{
+        let checker= PasswordChecker::<'static>::new()
+        .min_length(12, Some("12"))  // Use default error message with None OR use Some(str) for use custom message
+        .require_upper_lower(Some("A")) // Custom message
+        .require_number(Some("1")) // Custom message
+        .require_special_char(Some("@")); // Custom message
+        if login.username.len() < 3{
+            return Some(LogupState::UsernameTooShort);
+        }
+        match checker.validate(login.password.as_str()) {
+            Ok(_)=> return None,
+            Err(e)=>{
+                match e[0].as_str() {
+                    "12" => return Some(LogupState::PasswordTooShort),
+                    "A" => return Some(LogupState::MajusculeMissing),
+                    "1" => return Some(LogupState::NumberMissing),
+                    "@" => return Some(LogupState::SpecialCharMissing),
+                    _ => return Some(LogupState::InvalidPassword)
+                }
+            }
         }
     }
-    fn corrrect_username_length(login:&mut Login){
-        if login.username.len() < 8{
-            let nbr_0_missing = 8 -login.username.len();
+
+    fn corrrect_username_length(login:&Login)-> String{
+        let mut username_for_encryption=String::from(login.username.clone());
+        if username_for_encryption.len() < MIN_PASSWORD_LENGTH{
+            let nbr_0_missing = MIN_PASSWORD_LENGTH - username_for_encryption.len();
             for _ in 0..nbr_0_missing{
-                login.username.push('0');
+                username_for_encryption.push('0');
             }
             
         }
+        return username_for_encryption;
     }
+
     pub async fn restore_master_key_2(&self, credentials: &Credentials){
         /* Récupération clé master 2 */
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
@@ -261,13 +308,19 @@ impl Auth {
         token
     }
 
-    async fn create_kdf(&self, password: &String, salt: &String) -> [u8; HASH_LENGTH]{
+    async fn create_kdf(&self, password: &String, salt: &String) -> Option<[u8; HASH_LENGTH]>{
         let output_len: Option<usize> = Some(HASH_LENGTH);
         let param: Params= argon2::Params::new(MEMORY_COST, ITERATION_COST, PARALLELISM_COST, output_len).expect("problème");
         let password = password.as_bytes();
         let salt = salt.as_bytes();
         let mut out= [0u8; HASH_LENGTH];
-        let _ = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, param).hash_password_into(password, salt, &mut out);
-        return out;
+        let result = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, param).hash_password_into(password, salt, &mut out);
+        match result {
+            Ok(_)=> return Some(out),
+            Err(e)=>{
+                println!("Erreur lors de la création du kdf : {:?}", e);
+                return None
+            }
+        }
     }
 }

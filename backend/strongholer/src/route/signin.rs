@@ -11,8 +11,10 @@ async fn signin(id: web::Json<Login>, auth: web::Data<Auth>) -> HttpResponse{
         Ok(token)=>token,
         Err(e)=>{
             if e == LoginState::NotSignup{
+                println!("User: {} not signup", id.username);
                 return HttpResponse::BadRequest().body("1")
             }else{
+                println!("User: {} ierreur inconnue", id.username);
                 return HttpResponse::BadRequest().body("0")
             }
 
@@ -23,6 +25,7 @@ async fn signin(id: web::Json<Login>, auth: web::Data<Auth>) -> HttpResponse{
     .secure(true)
     .http_only(true)
     .finish();
+    println!("User: {} signin", id.username);
     HttpResponse::Ok()
     .append_header(("Set-Cookie", cookie.to_string()))
     .body("")

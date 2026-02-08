@@ -3,16 +3,16 @@ Ce cas concerne toutes les requêtes qui demande d'être authentifié au préala
 
 ## Output erreur
 ```
-Erreur inconnue middleware : 0
+Erreur inconnue middleware : 500
 ```
 ```
-Error variable app_data Auth inexistante: 1
+Error variable app_data Auth inexistante: 501
 ```
 ```
-Pas de cookie Bearer: 2
+Pas de cookie Bearer: 502
 ```
 ```
-Token expiré: 3
+Token expiré: 503
 ```
 
 
@@ -39,6 +39,24 @@ L'utilisateur existe déjà: 1
 ```
 ``` 
 Username minimum 5: 2
+```
+``` 
+Erreur dans le mot de passe inconnue: 3
+```
+``` 
+Mot de passe inférieur à 12 dans le mot passe: 4
+```
+``` 
+Pas de caractère spéclial dans le mot passe: 5
+```
+``` 
+Pas de majuscule dans le mot passe: 6
+```
+``` 
+Pas de nombre dans le mot passe: 7
+```
+``` 
+Error lors de la création du KDF: 8
 ```
 
 
