@@ -15,9 +15,6 @@ const ITERATION_COST: u32 = 3;
 const PARALLELISM_COST: u32 = 4;
 const HASH_LENGTH: usize = 32;
 
-// Password Settings
-const MIN_PASSWORD_LENGTH: usize = 3;
-
 //Validiter d'un token Bearer
 const EXPIRE_TIME: u64 = 60*20;
 const REFRESH_TIME: u64 = 60*10;
@@ -112,9 +109,9 @@ impl Auth {
         }
 
         let username_for_encryption= Auth::corrrect_username_length(&login);
-
+        println!("Username for encryption : {}", username_for_encryption);
         /* Création des id client */
-                let kdf_client = match self.create_kdf(&login.password, &username_for_encryption).await {
+        let kdf_client = match self.create_kdf(&login.password, &username_for_encryption).await {
             Some(kdf_client) => kdf_client,
             None => {
                 println!("Erreur lors de la création du kdf");
@@ -220,8 +217,8 @@ impl Auth {
 
     fn corrrect_username_length(login:&Login)-> String{
         let mut username_for_encryption=String::from(login.username.clone());
-        if username_for_encryption.len() < MIN_PASSWORD_LENGTH{
-            let nbr_0_missing = MIN_PASSWORD_LENGTH - username_for_encryption.len();
+        if username_for_encryption.len() < 8{
+            let nbr_0_missing = 8 - username_for_encryption.len();
             for _ in 0..nbr_0_missing{
                 username_for_encryption.push('0');
             }
