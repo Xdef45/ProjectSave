@@ -41,3 +41,4 @@ systemd-network:x:998:
 _ssh:x:101:
 tunnel:x:1000:
 backupsecrets:x:1001:backup,tunnel
+borgkey:x:1002:backup,tunnel

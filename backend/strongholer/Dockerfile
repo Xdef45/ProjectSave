@@ -1,6 +1,6 @@
 FROM debian:13.3 AS chef
 RUN apt update && apt upgrade -y
-RUN apt install curl pkg-config libssl-dev make build-essential borgbackup -y
+RUN apt install curl pkg-config libssl-dev make build-essential borgbackup sudo gpg-agent gpg -y
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -O && sh curl_response --quiet -y
 ENV PATH=/root/.cargo/bin:$PATH
 RUN cargo install cargo-chef 
@@ -22,6 +22,6 @@ RUN cargo build
 FROM debian:13.3 AS runtime
 WORKDIR /usr/local/sbin/
 COPY docker/borg/server_scripts .
-RUN ls . && sh install_all.sh
+RUN chmod +x ./*
 COPY --from=builder /app/target/debug/strongholer /usr/local/sbin
 ENTRYPOINT ["strongholer"]

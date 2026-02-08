@@ -12,6 +12,7 @@ services:
       - ./group:/etc/group
       - ./gshadow:/etc/gshadow
       - srv_home:/home
+      - ./key.pass:/etc/backup_secrets/key.pass
       - backup_server_key:/etc/backup_server_keys/
     restart: unless-stopped
     networks:
@@ -52,6 +53,7 @@ services:
       - ./group:/etc/group
       - ./gshadow:/etc/gshadow
       - srv_home:/home
+      - ./key.pass:/etc/backup_secrets/key.pass
       - backup_server_key:/etc/backup_server_keys/
     networks:
       - backend_net

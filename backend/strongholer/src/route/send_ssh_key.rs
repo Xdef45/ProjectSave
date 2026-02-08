@@ -43,7 +43,7 @@ async fn send_ssh_key(req: HttpRequest, mut payload: Multipart, auth: web::Data<
     }
 
     /* Execution du script d'ajout de la clé ssh */
-    let _ = match Command::new("server_scripts/install_client_key.sh")
+    let _ = match Command::new("install_client_key.sh")
     .args(&[credentials.id, filepath])
     .output().await{
             Ok(o)=> {
