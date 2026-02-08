@@ -37,7 +37,10 @@ pub struct Credentials{
 pub enum LoginState{
     AlreadyExist,
     NotSignup,
-    InvalidPassword
+    InvalidPassword,
+    /// username inférieur à 5
+    UsernameTooShort,
+    Valid
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -77,7 +80,7 @@ impl Auth {
         .database(&env::var("DB").expect("DB inexistant"));
         Self{db: MySqlPool::connect_with(opt).await.expect("Impossible de se connecter à la DB")}
     }
-    pub async fn signup(&self, login: Login) -> Result<String, LoginState> {
+    pub async fn signup(&self, login: &mut Login) -> Result<String, LoginState> {
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
         /* Vérification si l'utilisateur existe */
         let query = sqlx::query("SELECT username FROM Credentials WHERE username=?").bind(login.username.as_str());
@@ -85,6 +88,15 @@ impl Auth {
         if number_return_line.len() > 0 {
             return Err(LoginState::AlreadyExist);
         }
+
+        // Vérification de la validité des Login
+        let validation_state_login = Auth::validation_login(&login);
+        if validation_state_login != LoginState::Valid{
+            return Err(validation_state_login);
+        }
+
+        Auth::corrrect_username_length(login);
+        println!("{}",login.username);
 
         /* Création des id client */
         let kdf_client:[u8; 32]  = self.create_kdf(&login.password, &login.username).await;
@@ -154,6 +166,22 @@ impl Auth {
         /* Vérification du mot de passe */
         Ok(self.create_token(&credentials))
         
+    }
+    fn validation_login(login: &Login)->LoginState{
+        if login.username.len() < 5{
+            return LoginState::UsernameTooShort
+        }else{
+            return LoginState::Valid;
+        }
+    }
+    fn corrrect_username_length(login:&mut Login){
+        if login.username.len() < 8{
+            let nbr_0_missing = 8 -login.username.len();
+            for _ in 0..nbr_0_missing{
+                login.username.push('0');
+            }
+            
+        }
     }
     pub async fn restore_master_key_2(&self, credentials: &Credentials){
         /* Récupération clé master 2 */
