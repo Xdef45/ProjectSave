@@ -14,11 +14,11 @@ async fn signup(id: web::Json<Login>, auth: web::Data<Auth>) -> HttpResponse{
         Ok(token)=>token,
         Err(state)=>{
             if state == LoginState::AlreadyExist {
-                return HttpResponse::BadRequest().body("L'utilisateur existe déjà")
+                return HttpResponse::BadRequest().body("1")
             }else if state == LoginState::UsernameTooShort {
-                return HttpResponse::BadRequest().body("username minimum 5");
+                return HttpResponse::BadRequest().body("2");
             }else {
-                return HttpResponse::BadRequest().body("Erreur inconnue")
+                return HttpResponse::BadRequest().body("0")
             }
         }
     };

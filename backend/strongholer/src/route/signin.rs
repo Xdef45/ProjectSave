@@ -11,9 +11,9 @@ async fn signin(id: web::Json<Login>, auth: web::Data<Auth>) -> HttpResponse{
         Ok(token)=>token,
         Err(e)=>{
             if e == LoginState::NotSignup{
-                return HttpResponse::BadRequest().body("L'utilisateur n'est pas enregistré")
+                return HttpResponse::BadRequest().body("1")
             }else{
-                return HttpResponse::BadRequest().body("Erreur inconnue")
+                return HttpResponse::BadRequest().body("0")
             }
 
         }
