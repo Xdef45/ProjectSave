@@ -1,15 +1,16 @@
 #!/bin/bash
+#preparedecrypt
 set -euo pipefail
 
 CLIENT="${1:?Usage: $0 CLIENT REVERSE_PORT}" #nom client
-REVERSE_PORT="${2:?Usage: $0 CLIENT REVERSE_PORT}" # port g  n  r pour reverse
+REVERSE_PORT="${2:?Usage: $0 CLIENT REVERSE_PORT}" 
 LOCAL_USER="${3:?Usage: $0 CLIENT REVERSE_PORT}"
 
 SERVER_TO_CLIENT_KEY="/home/tunnel/.ssh/server_to_client_ed25519" #cl      feed pour pouvoir reverse
 SERVER_GPG_PASSFILE="/etc/backup_secrets/key.pass" # cl   gpg
 
 # dossiers temporaires
-TMPBASE="/tmp/borgkey"
+TMPBASE="/tmp/borgkey_tunnel"
 CLIENT_TMP="${TMPBASE}/${CLIENT}"
 PLAIN_LOCAL="${TMPBASE}/${CLIENT}.key"
 ENC_LOCAL="${CLIENT_TMP}/${CLIENT}.gpg"

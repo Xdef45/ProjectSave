@@ -1,4 +1,5 @@
 #!/bin/bash
+#prepserv.sh
 set -euo pipefail
 set -x
 
@@ -56,13 +57,18 @@ need_root
 # pkg_install
 
 # === Users ===
+
+groupadd borgkey
+
 echo "[prepareserv] Ensure users"
 if ! id "${BACKUP_USER}" >/dev/null 2>&1; then
   useradd -d "${BACKUP_HOME}" -m -s /usr/sbin/nologin "${BACKUP_USER}"
+  usermod -aG borgkey $BACKUP_USER
 fi
 
 if ! id "${TUNNEL_USER}" >/dev/null 2>&1; then
   useradd -d "${TUNNEL_HOME}" -m -s /bin/sh "${TUNNEL_USER}"
+  usermod -aG borgkey $TUNNEL_USER
 fi
 
 # repos 
@@ -107,7 +113,7 @@ fi
 
 # fichier temp pr clés borg
 if [ ! -f "${TMPBASE}" ]; then
-  install -d -m 0700 -o backup -g backup "${TMPBASE}"
+  install -d -m 2770 -o backup -g borgkey /tmp/borgkey "${TMPBASE}"
 fi
 
 # installation clé tunnel
