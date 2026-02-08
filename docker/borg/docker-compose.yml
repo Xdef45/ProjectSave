@@ -5,7 +5,14 @@ services:
     ports:
       - "2222:22"
     volumes:
-      - SAVE_FOLDER:/var/backups/borg
+      - repos:/srv/repos
+      - home:/home
+      - secrets:/etc/backup_secrets
+      - srvtcli:/etc/backup_server_keys
+
 
 volumes:
-  SAVE_FOLDER:
+  repos:
+  home:
+  srvtcli:
+  secrets:
