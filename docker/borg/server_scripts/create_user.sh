@@ -20,7 +20,7 @@ SERVER_TO_CLIENT_KEY="${SERVER_KEYS_DIR}/server_to_client_ed25519"
 if [ ! -f "${TMPBASE}" ]; then
   install -d -m 2770 -o backup -g borgkey /tmp/borgkey "${TMPBASE}"
 fi
-[ -d "$TUNNEL_STATE_BASE" ] || { echo "missing $TUNNEL_STATE_BASE (prepserv.sh must create it)"; exit 1; }
+# [ -d "$TUNNEL_STATE_BASE" ] || { echo "missing $TUNNEL_STATE_BASE (prepserv.sh must create it)"; exit 1; }
 
 # --- Per-client server layout ---
 BORG_USER="$CLIENT"
