@@ -1,3 +1,4 @@
+use actix_web::web::to;
 use sqlx::{mysql, MySqlPool};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
@@ -8,6 +9,8 @@ use argon2::{Argon2, Params};
 use std::{env, f32::MIN, result};
 use jsonwebtoken::errors::ErrorKind;
 use passcheck::PasswordChecker;
+use file_shred::shred_file;
+use std::path::Path;
 
 // argon2id paramètres
 const MEMORY_COST: u32 = 64*1024;
@@ -125,7 +128,7 @@ impl Auth {
         .args(&[&uuid])
         .output().await{
             Ok(o)=> println!("Erreur : {}\n Sortie : {}", String::from_utf8(o.stderr).expect("msg"), String::from_utf8(o.stdout).expect("msg")),
-            Err(_)=> println!("L'installation de la clé ssh client n'a pas fonctionné")
+            Err(e)=> println!("La création de l'utilisateur à échouer{}",e.to_string())
         };
 
         // Dérivation de la clé
@@ -227,7 +230,7 @@ impl Auth {
         return username_for_encryption;
     }
 
-    pub async fn restore_master_key_2(&self, credentials: &Credentials){
+    pub async fn restore_master_key_2_file(&self, credentials: &Credentials){
         /* Récupération clé master 2 */
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
         let query = sqlx::query_as("SELECT id, encrypt_master_key_2 FROM Credentials WHERE id=?").bind(credentials.id.as_str());
@@ -235,20 +238,44 @@ impl Auth {
         Auth::decrypt_master_2_key_create_file(result[0].encrypt_master_key_2.clone(), &credentials).await;
 
     }
-    pub async fn decrypt_master_2_key_create_file(master2_key_encrypted: String, credentials: &Credentials){
+    async fn decrypt_master_2_key_create_file(master2_key_encrypted: String, credentials: &Credentials){  
+        //  
+        let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY, credentials.id, credentials.id);
+        let path = Path::new(filename.as_str());
+        let is_exist = match tokio::fs::try_exists(path).await{
+            Ok(o)=>o,
+            Err(e)=> {
+                println!("{}",e.to_string()); 
+                return}
+        };
+        if is_exist{
+            return
+        }
         let master2_key_encrypted = hex::decode(master2_key_encrypted).expect("Convertion d'un string en bytes");
         let kdf_key_client = hex::decode(&credentials.kdf).expect("Convertion d'un string en bytes");
         let kdf_key = AesKey::new_decrypt(&kdf_key_client).expect("wrap kdf n'a pas focntionner");
         let mut master_key_2 = [0u8; 560];
         let _ = unwrap_key(&kdf_key, None, &mut master_key_2, &master2_key_encrypted).expect("msg");
-        let path = format!("{}/{}/bootstrap/{}.key",CLIENT_DIRECTORY,credentials.id,credentials.id);
         let _ = tokio::fs::write(path, master_key_2).await;
         return
     }
-    
-    pub async fn delete_master_2_key_file(credentials: &Credentials){
-        let path = format!("{}/{}/bootstrap/{}.key",CLIENT_DIRECTORY,credentials.id,credentials.id);
-        let _ = tokio::fs::remove_file(path);
+
+    pub async fn delete_master_key_2_file(credentials: &Credentials){
+        let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY, credentials.id, credentials.id);
+        let path = Path::new(filename.as_str());
+        let is_exist = match tokio::fs::try_exists(path).await{
+            Ok(o)=>o,
+            Err(e)=> {
+                println!("{}",e.to_string()); 
+                return}
+        };
+        if ! is_exist{
+            return
+        }
+            match shred_file(path){
+                Ok(_)=>{let _ = tokio::fs::remove_file(path).await;},
+                Err(e)=>println!("Erreur lors de la supression de la clé Borg : {}", e.to_string())
+            };       
     }
 
     /* Vérifier token jwt */

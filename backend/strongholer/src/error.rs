@@ -3,19 +3,28 @@ use derive_more::derive::{Display, Error};
 
 
 #[derive(Debug, Display, Error)]
-pub enum FileError{
+pub enum APIError{
     NoFile,
     NoCookieBearer,
-    NoAuthAppData
+    NoAuthAppData,
+    Script,
+    ConversionVecToString
+
 }
 
-impl error::ResponseError for FileError{
+impl error::ResponseError for APIError{
     fn error_response(&self)->HttpResponse{
         let response = match *self{
             _=>"0",
-            FileError::NoFile=>"1",
-            FileError::NoCookieBearer=>"101",
-            FileError::NoAuthAppData=>"102"
+            APIError::NoFile=>"1",
+
+            /// Cas Généraux
+            APIError::NoCookieBearer=>"101",
+            APIError::NoAuthAppData=>"102",
+            APIError::Script=>"103",
+            APIError::ConversionVecToString=>"104"
+
+
         };
         HttpResponse::BadRequest().body(response)
     }

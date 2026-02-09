@@ -117,3 +117,17 @@ Type: ```multipart/form_data```
 http code 200
 ```
 
+# /api/list_repot
+Une fois l'utilisateur authentifier avec son cookie, il demande le contenue de repot Borg sous forme d'un json.
+## input
+Type: ```Header```
+```
+Cookie Bearer=<JWT_Token>
+```
+## output
+Type: ```application/json```
+```
+{
+    "archives": []
+}
+```
