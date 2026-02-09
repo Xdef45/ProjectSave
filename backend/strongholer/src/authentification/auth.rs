@@ -245,6 +245,11 @@ impl Auth {
         let _ = tokio::fs::write(path, master_key_2).await;
         return
     }
+    
+    pub async fn delete_master_2_key_file(credentials: &Credentials){
+        let path = format!("{}/{}/bootstrap/{}.key",CLIENT_DIRECTORY,credentials.id,credentials.id);
+        let _ = tokio::fs::remove_file(path);
+    }
 
     /* Vérifier token jwt */
     pub fn validation(&self,token_jwt: String)-> (BearerState, (Option<String>, Option<Credentials>)){
