@@ -1,19 +1,13 @@
 name: strongholder
 services:
-  borg-server:
+  borg:
     build: ./borg
     container_name: strongholder-borg
     ports:
       - "2222:22"
     volumes:
       - srv_repot:/srv
-      - ./passwd:/etc/passwd
-      - ./shadow:/etc/shadow
-      - ./group:/etc/group
-      - ./gshadow:/etc/gshadow
-      - srv_home:/home
-      - ./key.pass:/etc/backup_secrets/key.pass
-      - backup_server_key:/etc/backup_server_keys/
+      - srv_etc:/etc
     restart: unless-stopped
     networks:
       - backup_net
@@ -34,9 +28,7 @@ services:
       - backend_net
 
   api:
-    build: 
-      context: ..
-      dockerfile: backend/strongholer/Dockerfile
+    build: api
     container_name: strongholder-api
     restart: always
     environment:
@@ -46,15 +38,8 @@ services:
       DB_PORT: ${MARIADB_PORT}
       DB: ${MARIADB_DATABASE}
       JWT_SECRET: ${JWT_SECRET}
-    volumes:
-      - srv_repot:/srv
-      - ./passwd:/etc/passwd
-      - ./shadow:/etc/shadow
-      - ./group:/etc/group
-      - ./gshadow:/etc/gshadow
-      - srv_home:/home
-      - ./key.pass:/etc/backup_secrets/key.pass
-      - backup_server_key:/etc/backup_server_keys/
+    depends_on:
+      - db
     networks:
       - backend_net
 
@@ -69,7 +54,7 @@ services:
       - ./nginx/certs/fullchain.pem:/etc/nginx/certs/fullchain.pem
       - ./nginx/certs/privatekey.pem:/etc/nginx/certs/privatekey.pem
     depends_on:
-      - db
+      - api
     restart: unless-stopped
     networks:
       - backend_net
@@ -77,12 +62,7 @@ services:
 volumes:
   db_data: 
   srv_repot:
-  srv_passwd:
-  srv_shadow:
-  srv_group:
-  srv_gshadow:
-  srv_home:
-  backup_server_key:
+  srv_etc:
 
 networks:
   backend_net:

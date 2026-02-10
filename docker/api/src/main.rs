@@ -3,7 +3,6 @@ use actix_web::{HttpRequest, HttpResponse, post,web, App, HttpServer};
 mod authentification;
 use crate::authentification::auth::Auth;
 use crate::authentification::middleware_auth;
-mod script;
 use serde_json;
 
 mod route;
