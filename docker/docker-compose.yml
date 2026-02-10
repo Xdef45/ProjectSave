@@ -8,6 +8,7 @@ services:
     volumes:
       - srv_repot:/srv
       - srv_etc:/etc
+      - srv_home:/home
     restart: unless-stopped
     networks:
       - backup_net
@@ -63,6 +64,7 @@ volumes:
   db_data: 
   srv_repot:
   srv_etc:
+  srv_home:
 
 networks:
   backend_net:

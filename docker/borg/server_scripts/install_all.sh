@@ -22,7 +22,9 @@ for s in \
   install_client_key.sh \
   install_client_tunnel_key.sh \
   prepserv.sh \
-  gen_gpg_passphrase.sh
+  gen_gpg_passphrase.sh \
+  list.sh \
+  restore.sh
 do
   install -m 0755 -o root -g root "${SRC_DIR}/${s}" "${DST_DIR}/${s}"
 done

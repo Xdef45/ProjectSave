@@ -7,12 +7,10 @@ services:
     volumes:
       - repos:/srv/repos
       - home:/home
-      - secrets:/etc/backup_secrets
-      - srvtcli:/etc/backup_server_keys
+      - srv_etc:/etc
 
 
 volumes:
   repos:
   home:
-  srvtcli:
-  secrets:
+  srv_etc:
