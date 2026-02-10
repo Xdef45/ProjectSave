@@ -5,9 +5,10 @@ use crate::authentification::auth::Auth;
 use crate::authentification::middleware_auth;
 mod script;
 use serde_json;
+mod error;
 
 mod route;
-use crate::route::{signup, signin, get_repot_key, send_ssh_key};
+use crate::route::{signup, signin, get_repot_key, send_ssh_key, list_repot};
 
 #[post("/imaconnected")]
 async fn imaconnected(req: HttpRequest, auth: web::Data<Auth>) -> HttpResponse{
@@ -35,6 +36,7 @@ async fn main() -> std::io::Result<()> {
             .service(imaconnected)
             .service(send_ssh_key::send_ssh_key)
             .service(get_repot_key::get_repot_key)
+            .service(list_repot::list_repot)
         )
     })
     .bind(("0.0.0.0", 8080)).expect("exit notime to play")

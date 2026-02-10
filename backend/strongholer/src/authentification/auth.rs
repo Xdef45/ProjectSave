@@ -1,3 +1,4 @@
+use actix_web::web::to;
 use sqlx::{mysql, MySqlPool};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
@@ -5,8 +6,11 @@ use uuid::Uuid;
 use tokio::{fs, process::Command};
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
 use argon2::{Argon2, Params};
-use std::{env, fs::File, path};
+use std::{env, f32::MIN, result};
 use jsonwebtoken::errors::ErrorKind;
+use passcheck::PasswordChecker;
+use file_shred::shred_file;
+use std::path::Path;
 
 // argon2id paramètres
 const MEMORY_COST: u32 = 64*1024;
@@ -35,9 +39,25 @@ pub struct Credentials{
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum LoginState{
-    AlreadyExist,
     NotSignup,
-    InvalidPassword
+    KDFError
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum LogupState{
+    KDFError,
+    AlreadyExist,
+    InvalidPassword,
+    /// username inférieur à 5
+    UsernameTooShort,
+    /// Password length inférieur à 12
+    PasswordTooShort,
+    /// Pas de caractère spécial
+    SpecialCharMissing,
+    /// Pas de majuscule
+    MajusculeMissing,
+    /// Pas de chiffre
+    NumberMissing
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -77,17 +97,30 @@ impl Auth {
         .database(&env::var("DB").expect("DB inexistant"));
         Self{db: MySqlPool::connect_with(opt).await.expect("Impossible de se connecter à la DB")}
     }
-    pub async fn signup(&self, login: Login) -> Result<String, LoginState> {
+    pub async fn signup(&self, login: Login) -> Result<String, LogupState> {
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
         /* Vérification si l'utilisateur existe */
         let query = sqlx::query("SELECT username FROM Credentials WHERE username=?").bind(login.username.as_str());
         let number_return_line: Vec<mysql::MySqlRow> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
         if number_return_line.len() > 0 {
-            return Err(LoginState::AlreadyExist);
+            return Err(LogupState::AlreadyExist);
         }
 
+        // Vérification de la validité des Login
+        if let Some(validation_state_login) = Auth::validation_login(&login){
+            return Err(validation_state_login);
+        }
+
+        let username_for_encryption= Auth::corrrect_username_length(&login);
+        println!("Username for encryption : {}", username_for_encryption);
         /* Création des id client */
-        let kdf_client:[u8; 32]  = self.create_kdf(&login.password, &login.username).await;
+        let kdf_client = match self.create_kdf(&login.password, &username_for_encryption).await {
+            Some(kdf_client) => kdf_client,
+            None => {
+                println!("Erreur lors de la création du kdf");
+                return Err(LogupState::KDFError);
+            }
+        };
         let uuid = Uuid::new_v4().simple().to_string();
 
         // Création du répertoire utilisateur
@@ -95,7 +128,7 @@ impl Auth {
         .args(&[&uuid])
         .output().await{
             Ok(o)=> println!("Erreur : {}\n Sortie : {}", String::from_utf8(o.stderr).expect("msg"), String::from_utf8(o.stdout).expect("msg")),
-            Err(e)=> println!("L'installation de la clé ssh client n'a pas fonctionné")
+            Err(e)=> println!("La création de l'utilisateur à échouer{}",e.to_string())
         };
 
         // Dérivation de la clé
@@ -147,7 +180,14 @@ impl Auth {
         }
 
         /* Création de la clé dériver */
-        let kdf_client = self.create_kdf(&login.password, &login.username).await;
+        let username_for_encryption= Auth::corrrect_username_length(&login);
+        let kdf_client = match self.create_kdf(&login.password, &username_for_encryption).await {
+            Some(kdf_client) => kdf_client,
+            None => {
+                println!("Erreur lors de la création du kdf");
+                return Err(LoginState::KDFError);
+            }
+        };
         /* Renvoyer le cookie JWT */
         let credentials = Credentials{exp: (get_current_timestamp() + EXPIRE_TIME), id:result[0].id.clone(), kdf:hex::encode(kdf_client)};
         Auth::decrypt_master_2_key_create_file(result[0].encrypt_master_key_2.clone(), &credentials).await;
@@ -155,7 +195,42 @@ impl Auth {
         Ok(self.create_token(&credentials))
         
     }
-    pub async fn restore_master_key_2(&self, credentials: &Credentials){
+    fn validation_login(login: &Login)->Option<LogupState>{
+        let checker= PasswordChecker::<'static>::new()
+        .min_length(12, Some("12"))  // Use default error message with None OR use Some(str) for use custom message
+        .require_upper_lower(Some("A")) // Custom message
+        .require_number(Some("1")) // Custom message
+        .require_special_char(Some("@")); // Custom message
+        if login.username.len() < 3{
+            return Some(LogupState::UsernameTooShort);
+        }
+        match checker.validate(login.password.as_str()) {
+            Ok(_)=> return None,
+            Err(e)=>{
+                match e[0].as_str() {
+                    "12" => return Some(LogupState::PasswordTooShort),
+                    "A" => return Some(LogupState::MajusculeMissing),
+                    "1" => return Some(LogupState::NumberMissing),
+                    "@" => return Some(LogupState::SpecialCharMissing),
+                    _ => return Some(LogupState::InvalidPassword)
+                }
+            }
+        }
+    }
+
+    fn corrrect_username_length(login:&Login)-> String{
+        let mut username_for_encryption=String::from(login.username.clone());
+        if username_for_encryption.len() < 8{
+            let nbr_0_missing = 8 - username_for_encryption.len();
+            for _ in 0..nbr_0_missing{
+                username_for_encryption.push('0');
+            }
+            
+        }
+        return username_for_encryption;
+    }
+
+    pub async fn restore_master_key_2_file(&self, credentials: &Credentials){
         /* Récupération clé master 2 */
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
         let query = sqlx::query_as("SELECT id, encrypt_master_key_2 FROM Credentials WHERE id=?").bind(credentials.id.as_str());
@@ -163,15 +238,44 @@ impl Auth {
         Auth::decrypt_master_2_key_create_file(result[0].encrypt_master_key_2.clone(), &credentials).await;
 
     }
-    pub async fn decrypt_master_2_key_create_file(master2_key_encrypted: String, credentials: &Credentials){
+    async fn decrypt_master_2_key_create_file(master2_key_encrypted: String, credentials: &Credentials){  
+        //  
+        let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY, credentials.id, credentials.id);
+        let path = Path::new(filename.as_str());
+        let is_exist = match tokio::fs::try_exists(path).await{
+            Ok(o)=>o,
+            Err(e)=> {
+                println!("{}",e.to_string()); 
+                return}
+        };
+        if is_exist{
+            return
+        }
         let master2_key_encrypted = hex::decode(master2_key_encrypted).expect("Convertion d'un string en bytes");
         let kdf_key_client = hex::decode(&credentials.kdf).expect("Convertion d'un string en bytes");
         let kdf_key = AesKey::new_decrypt(&kdf_key_client).expect("wrap kdf n'a pas focntionner");
         let mut master_key_2 = [0u8; 560];
         let _ = unwrap_key(&kdf_key, None, &mut master_key_2, &master2_key_encrypted).expect("msg");
-        let path = format!("{}/{}/bootstrap/{}.key",CLIENT_DIRECTORY,credentials.id,credentials.id);
         let _ = tokio::fs::write(path, master_key_2).await;
         return
+    }
+
+    pub async fn delete_master_key_2_file(credentials: &Credentials){
+        let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY, credentials.id, credentials.id);
+        let path = Path::new(filename.as_str());
+        let is_exist = match tokio::fs::try_exists(path).await{
+            Ok(o)=>o,
+            Err(e)=> {
+                println!("{}",e.to_string()); 
+                return}
+        };
+        if ! is_exist{
+            return
+        }
+            match shred_file(path){
+                Ok(_)=>{let _ = tokio::fs::remove_file(path).await;},
+                Err(e)=>println!("Erreur lors de la supression de la clé Borg : {}", e.to_string())
+            };       
     }
 
     /* Vérifier token jwt */
@@ -233,13 +337,19 @@ impl Auth {
         token
     }
 
-    async fn create_kdf(&self, password: &String, salt: &String) -> [u8; HASH_LENGTH]{
+    async fn create_kdf(&self, password: &String, salt: &String) -> Option<[u8; HASH_LENGTH]>{
         let output_len: Option<usize> = Some(HASH_LENGTH);
         let param: Params= argon2::Params::new(MEMORY_COST, ITERATION_COST, PARALLELISM_COST, output_len).expect("problème");
         let password = password.as_bytes();
         let salt = salt.as_bytes();
         let mut out= [0u8; HASH_LENGTH];
-        let _ = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, param).hash_password_into(password, salt, &mut out);
-        return out;
+        let result = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, param).hash_password_into(password, salt, &mut out);
+        match result {
+            Ok(_)=> return Some(out),
+            Err(e)=>{
+                println!("Erreur lors de la création du kdf : {:?}", e);
+                return None
+            }
+        }
     }
 }
