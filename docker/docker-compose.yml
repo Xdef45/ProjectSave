@@ -37,8 +37,6 @@ services:
       DB_PORT: ${MARIADB_PORT}
       DB: ${MARIADB_DATABASE}
       JWT_SECRET: ${JWT_SECRET}
-    ports: 
-      - "80:8080"
     volumes:
       - srv_repot:/srv
     networks:

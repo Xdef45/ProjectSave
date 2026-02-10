@@ -10,8 +10,11 @@ members = []
 actix-files = "0.6"
 actix-multipart = "0.7.2"
 argon2 = "0.5.3"
+derive_more = "2.1.1"
+file_shred = "1.2.1"
 futures-util = "0.3.31"
 hex = "0.4"
+passcheck = "0.2.0"
 serde = "1.0.228"
 serde_json = "1.0.149"
 tokio = { version = "1.49.0", features = ["fs", "macros", "process", "rt-multi-thread"] }

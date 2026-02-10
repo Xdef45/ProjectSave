@@ -20,7 +20,6 @@ async fn send_ssh_key(req: HttpRequest, mut payload: Multipart, auth: web::Data<
     
     /* Upload du fichier */
     let filepath= format!("{}/{}/bootstrap/ssh-key.pub", CLIENT_DIRECTORY, credentials.id,);
-    println!("{}",filepath);
     while let Some(field) = payload.next().await {
         let mut field = field.expect("field invalide");
         
@@ -51,7 +50,7 @@ async fn send_ssh_key(req: HttpRequest, mut payload: Multipart, auth: web::Data<
                 println!("Erreur : {}\n Sortie : {}", String::from_utf8(o.stderr).expect("msg"), String::from_utf8(o.stdout).expect("msg"));
                 return HttpResponse::Ok().finish()
             },
-            Err(e)=> {
+            Err(_)=> {
                 println!("L'installation de la clé ssh client n'a pas fonctionné");
                 return HttpResponse::BadRequest().finish()
             }
