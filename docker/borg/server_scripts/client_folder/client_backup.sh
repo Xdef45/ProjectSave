@@ -10,15 +10,14 @@ CLIENT="${1:?Usage: $0 CLIENT /path/to/save}"
 SRC="${2:?Usage: $0 CLIENT /path/to/save}"
 LOCAL_USER="$(id -un)"
 
-
 SERVER_HOST="saveserver"
-SERVER_SSH_PORT=22
+SERVER_SSH_PORT=2222 # ça va changer
 
 # User serveur qui héberge le repo + accepte le reverse tunnel
 # (selon ton modèle: tunnel@server ou borg_<client>@server)
-SERVER_USER="tunnel"   # ou "borg_${CLIENT}" selon ce que tu choisis
+SERVER_USER="tunnel"
 
-# Clé client -> serveur (reverse tunnel + commande remote)
+#Clé client -> serveur (reverse tunnel + commande remote)
 CLIENT_SSH_KEY="$HOME/.ssh/tunnel_key"
 
 TUNNEL_PID=""
@@ -35,6 +34,7 @@ trap cleanup EXIT INT TERM
 log "Requesting reverse port from server"
 REVERSE_PORT="$(
   ssh -i ~/.ssh/tunnel_key \
+    -p $SERVER_SSH_PORT \
     -o IdentitiesOnly=yes \
     -o BatchMode=yes \
     tunnel@saveserver \
@@ -49,7 +49,7 @@ fi
 
 # Repo borg sur le serveur (exemple)
 # IMPORTANT: borg create tourne sur le client, et le serveur doit autoriser borg serve
-REPO="ssh://borg_${CLIENT}@${SERVER_HOST}:${SERVER_SSH_PORT}/srv/repos/${CLIENT}/repo"
+REPO="ssh://${CLIENT}@${SERVER_HOST}:${SERVER_SSH_PORT}/srv/repos/${CLIENT}/repo"
 
 # On ouvre le tunnel en background, puis on orchestre via SSH sur le serveur.
 SSH_OPTS=(
@@ -78,7 +78,7 @@ ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" \
 
 # 3) Faire le backup Borg (côté client)
 log "Starting borg backup"
-export BORG_RSH="ssh -i $HOME/.ssh/borg_${CLIENT}_key -o IdentitiesOnly=yes -o BatchMode=yes"
+export BORG_RSH="ssh -p $SERVER_SSH_PORT -i $HOME/.ssh/borg_${CLIENT}_key -o IdentitiesOnly=yes -o BatchMode=yes"
 borg create --compression zstd,6 --stats \
   "${REPO}::$(date +%F_%H-%M-%S)" \
   "$SRC"

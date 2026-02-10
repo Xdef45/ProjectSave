@@ -17,8 +17,10 @@ SERVER_KEYS_DIR="/etc/backup_server_keys"   # plus clair que /etc/.ssh
 SERVER_TO_CLIENT_KEY="${SERVER_KEYS_DIR}/server_to_client_ed25519"
 
 [ -s "$SECRET_FILE" ] || { echo "missing/empty $SECRET_FILE (create it first)"; exit 1; }
-[ -d "$TMPBASE" ] || { echo "missing $TMPBASE (prepserv.sh must create it)"; exit 1; }
-[ -d "$TUNNEL_STATE_BASE" ] || { echo "missing $TUNNEL_STATE_BASE (prepserv.sh must create it)"; exit 1; }
+if [ ! -f "${TMPBASE}" ]; then
+  install -d -m 2770 -o backup -g borgkey /tmp/borgkey "${TMPBASE}"
+fi
+# [ -d "$TUNNEL_STATE_BASE" ] || { echo "missing $TUNNEL_STATE_BASE (prepserv.sh must create it)"; exit 1; }
 
 # --- Per-client server layout ---
 BORG_USER="$CLIENT"
@@ -33,7 +35,7 @@ KEY_TMP_CLEAR="${TMPBASE}/${CLIENT}.key"
 # --- Create borg user (no interactive login) ---
 if ! id -u "$BORG_USER" >/dev/null 2>&1; then
   # -M: do not auto-create home (we create with correct perms ourselves)
-  useradd -M -d "$HOME_DIR" -s /usr/sbin/nologin "$BORG_USER"
+  useradd -M -d "$HOME_DIR" -s /bin/sh "$BORG_USER"
 fi
 
 # Ensure home + repo dirs with strict perms

@@ -1,0 +1,18 @@
+services:
+  borg-server:
+    build: .
+    container_name: borg_test_serv
+    ports:
+      - "2222:22"
+    volumes:
+      - repos:/srv/repos
+      - home:/home
+      - secrets:/etc/backup_secrets
+      - srvtcli:/etc/backup_server_keys
+
+
+volumes:
+  repos:
+  home:
+  srvtcli:
+  secrets:
