@@ -18,7 +18,7 @@ SERVER_TO_CLIENT_KEY="${SERVER_KEYS_DIR}/server_to_client_ed25519"
 
 [ -s "$SECRET_FILE" ] || { echo "missing/empty $SECRET_FILE (create it first)"; exit 1; }
 if [ ! -f "${TMPBASE}" ]; then
-  install -d -m 2770 -o backup -g borgkey /tmp/borgkey "${TMPBASE}"
+  install -d -m 2770 -o api -g borgkey /tmp/borgkey "${TMPBASE}"
 fi
 # [ -d "$TUNNEL_STATE_BASE" ] || { echo "missing $TUNNEL_STATE_BASE (prepserv.sh must create it)"; exit 1; }
 

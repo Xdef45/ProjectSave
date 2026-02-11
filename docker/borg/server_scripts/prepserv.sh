@@ -4,8 +4,8 @@ set -euo pipefail
 set -x
 
 # config
-BACKUP_USER="backup"
-BACKUP_HOME="/srv/repos"
+BACKUP_USER="api"
+BACKUP_HOME="/srv/repos/api"
 
 TUNNEL_USER="tunnel"
 TUNNEL_HOME="/home/tunnel"
@@ -62,8 +62,9 @@ groupadd borgkey
 
 echo "[prepareserv] Ensure users"
 if ! id "${BACKUP_USER}" >/dev/null 2>&1; then
-  useradd -d "${BACKUP_HOME}" -m -s /usr/sbin/nologin "${BACKUP_USER}"
+  useradd -d "${BACKUP_HOME}" -m -s /bin/sh "${BACKUP_USER}"
   usermod -aG borgkey $BACKUP_USER
+  #install clé
 fi
 
 if ! id "${TUNNEL_USER}" >/dev/null 2>&1; then
