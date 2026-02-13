@@ -12,6 +12,7 @@ services:
       - srv_etc:/etc
       - srv_home:/home
       - ./credentials/borg/id_ed25519.pub:/root/.ssh/id_ed25519.pub
+      - tunnel_locks:/var/lib/tunnel
     restart: unless-stopped
     networks:
       - backup_net
@@ -64,6 +65,7 @@ volumes:
   srv_repot:
   srv_etc:
   srv_home:
+  tunnel_locks:
 
 networks:
   backend_net:
