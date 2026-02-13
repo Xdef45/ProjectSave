@@ -81,26 +81,6 @@ chmod 0640 "$KEY_GPG"
 install -d -o "$BORG_USER" -g "$BORG_USER" -m 0700 "$HOME_DIR/.ssh"
 install -o "$BORG_USER" -g "$BORG_USER" -m 0600 /dev/null "$HOME_DIR/.ssh/authorized_keys"
 
-# --- Build per-client bootstrap folder (template + keys) ---
-CLIENT_FOLDER_TEMPLATE="/usr/local/sbin/client_folder"
-CLIENT_FOLDER_DST="${HOME_DIR}/${CLIENT}_folder"
-
-# Copie du template (préserve perms, fichiers cachés, etc.)
-rm -rf "$CLIENT_FOLDER_DST"
-cp -a "$CLIENT_FOLDER_TEMPLATE" "$CLIENT_FOLDER_DST"
-
-# Assure l'existence du sous-dossier keys/
-install -d -m 0700 -o root -g root "${CLIENT_FOLDER_DST}/keys"
-
-# Copie la clé publique server->client dans le kit
-install -m 0644 -o root -g root "${SERVER_TO_CLIENT_KEY}.pub" "${CLIENT_FOLDER_DST}/keys/server_to_client.pub"
-install -m 0644 -o root -g root "${KEY_GPG}" "${CLIENT_FOLDER_DST}/keys/${CLIENT}.gpg"
-
-
-# (optionnel) Mets aussi la host key du serveur pour éviter prompts SSH côté client
-# ssh-keyscan -H "${SERVER_HOST}" > "${CLIENT_FOLDER_DST}/keys/known_hosts" 2>/dev/null || true
-#chmod 0644 "${CLIENT_FOLDER_DST}/keys/known_hosts" 2>/dev/null || true
-
 
 echo "OK created/updated: user=$BORG_USER home=$HOME_DIR repo=$REPO_DIR"
 echo "Bootstrap key (encrypted): $KEY_GPG"

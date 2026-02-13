@@ -29,8 +29,6 @@ do
   install -m 0755 -o root -g root "${SRC_DIR}/${s}" "${DST_DIR}/${s}"
 done
 
-cp -a "${SRC_DIR}/client_folder" "${DST_DIR}/client_folder"
-
 echo "[install_all] Done."
 
 echo "[install_all] Running prepserv.sh"
