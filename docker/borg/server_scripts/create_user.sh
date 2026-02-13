@@ -28,6 +28,7 @@ HOME_DIR="/srv/repos/${CLIENT}"
 REPO_DIR="${HOME_DIR}/repo"
 BOOTSTRAP_DIR="${HOME_DIR}/bootstrap"
 KEY_GPG="${BOOTSTRAP_DIR}/${CLIENT}.gpg"
+API_USER="api"
 
 # temp key export (server-side, short-lived)
 KEY_TMP_CLEAR="${TMPBASE}/${CLIENT}.key"
@@ -36,7 +37,7 @@ KEY_TMP_CLEAR="${TMPBASE}/${CLIENT}.key"
 if ! id -u "$BORG_USER" >/dev/null 2>&1; then
   # -M: do not auto-create home (we create with correct perms ourselves)
   useradd -M -d "$HOME_DIR" -s /bin/sh "$BORG_USER"
-  passwd -d api
+  passwd -d $BORG_USER
 fi
 
 # Ensure home + repo dirs with strict perms
