@@ -38,6 +38,9 @@ async fn signup(id: web::Json<Login>, auth: web::Data<Auth>) -> HttpResponse{
                 LogupState::KDFError => {
                     println!("User: {} error during kdf creation", id.username);
                     return HttpResponse::BadRequest().body("8")},
+                LogupState::ScriptError => {
+                    println!("User: {} error during script", id.username);
+                    return HttpResponse::BadRequest().body("9")}
             }
         }
     };

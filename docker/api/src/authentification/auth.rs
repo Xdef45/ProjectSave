@@ -3,13 +3,16 @@ use sqlx::{mysql, MySqlPool};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use tokio::{fs, process::Command};
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
 use argon2::{Argon2, Params};
-use std::{env, f32::MIN, result};
+use std::env;
 use jsonwebtoken::errors::ErrorKind;
 use passcheck::PasswordChecker;
 use std::path::Path;
+use openssh::{Session, KnownHosts};
+use std::sync::Arc;
+use openssh_sftp_client::{Sftp, SftpOptions};
+use bytes::BytesMut;
 
 // argon2id paramètres
 const MEMORY_COST: u32 = 64*1024;
@@ -56,7 +59,8 @@ pub enum LogupState{
     /// Pas de majuscule
     MajusculeMissing,
     /// Pas de chiffre
-    NumberMissing
+    NumberMissing,
+    ScriptError
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -79,7 +83,9 @@ struct MysqlCredentials{
 
 #[derive(Clone)]
 pub struct Auth{
-    db: MySqlPool
+    db: MySqlPool,
+    ssh_connexion: Arc<Session>,
+    sftp_connexion: Arc<Sftp>
 }
 
 impl Auth {
@@ -94,7 +100,13 @@ impl Auth {
         })
         .username(&env::var("DB_USER").expect("DB_USER inexistant"))
         .database(&env::var("DB").expect("DB inexistant"));
-        Self{db: MySqlPool::connect_with(opt).await.expect("Impossible de se connecter à la DB")}
+        let session_ssh = Session::connect_mux("ssh://api@borg:22", KnownHosts::Add).await.expect("Impossible de se connecter au serveur ssh");
+        let session_sftp = Session::connect_mux("ssh://api@borg:22", KnownHosts::Add).await.expect("Impossible de se connecter au serveur ssh");
+        Self{
+            db: MySqlPool::connect_with(opt).await.expect("Impossible de se connecter à la DB"),
+            ssh_connexion: Arc::new(session_ssh),
+            sftp_connexion: Arc::new(Sftp::from_session(session_sftp, SftpOptions::default()).await.expect("test"))
+        }
     }
     pub async fn signup(&self, login: Login) -> Result<String, LogupState> {
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
@@ -123,19 +135,36 @@ impl Auth {
         let uuid = Uuid::new_v4().simple().to_string();
 
         // Création du répertoire utilisateur
+        let script_path=String::from("/usr/local/sbin/create_user.sh");
+        let _ = match self.ssh_connexion.command("sudo").args([&script_path, &uuid]).output().await{
+            Ok(o)=>{println!("script create_user");o},
+            Err(e)=>{
+                println!("{}", e.to_string());
+                return Err(LogupState::ScriptError)
+            }
+        };
+        /*
         let _ = match Command::new("create_user.sh")
         .args(&[&uuid])
         .output().await{
             Ok(o)=> println!("Erreur : {}\n Sortie : {}", String::from_utf8(o.stderr).expect("msg"), String::from_utf8(o.stdout).expect("msg")),
             Err(e)=> println!("La création de l'utilisateur à échouer{}",e.to_string())
         };
+        */
 
         // Dérivation de la clé
         let path_key = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY,uuid, uuid).to_string();
         println!("{}", path_key);
-        let master_key = fs::read_to_string(&path_key).await
-        .expect("Ouverture du fichier à échoué");
-        let _ = fs::remove_file(path_key).await;
+        let mut master_key_file = match self.sftp_connexion.open(path_key).await {
+            Ok(f)=>{println!("srv_respos_ouvert");f},
+            Err(_)=> return Err(LogupState::ScriptError)
+        };
+        let master_key_offset:usize = master_key_file.offset().try_into().expect("conversion échouer");
+        let mut buf= bytes::BytesMut::with_capacity(master_key_offset);
+        let master_key_byte = master_key_file.read_all(master_key_offset, buf).await.expect("read all échoué");
+        let master_key = String::from_utf8(master_key_byte.to_vec()).expect("conversion to string échoué");
+        println!("{}", master_key);
+        // let _ = fs::remove_file(path_key).await;
         
 
         let key_encrypted = self.create_master_key_2(&kdf_client, master_key);

@@ -10,7 +10,6 @@ mod route;
 use crate::route::{signup, signin, get_repot_key, send_ssh_key, list_repot, ssh_test};
 use openssh::{Session, KnownHosts};
 use std::os::unix::fs::PermissionsExt;
-use std::sync::Arc;
 use tokio::fs;
 use std::fs::Permissions;
 use std::path::Path;
@@ -30,21 +29,11 @@ async fn imaconnected(req: HttpRequest, auth: web::Data<Auth>) -> HttpResponse{
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let auth = Auth::new().await;
-    println!("db réussi");
-    let session = Arc::new(
-        match Session::connect_mux("ssh://api@borg:22", KnownHosts::Add).await{
-            Ok(s)=>{
-                println!("session ssh réussi");
-                s},
-            Err(e)=>{
-                println!("session ssh Échoué{}", e.to_string());
-                return Ok(())}
-        });
-    
+    println!("connection db et ssh réussi");
+
     HttpServer::new(move || {
         App::new()
         .app_data(web::Data::new(auth.clone()))
-        .app_data(web::Data::new(session.clone()))
         .service(
             web::scope("/api")
             .wrap(middleware::from_fn(middleware_auth::authentification_middleware))
