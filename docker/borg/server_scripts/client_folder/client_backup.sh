@@ -8,6 +8,7 @@ log() {
 
 CLIENT="${1:?Usage: $0 CLIENT /path/to/save}"
 SRC="${2:?Usage: $0 CLIENT /path/to/save}"
+PATTERN_FILE="${3:?Usage: $0 CLIENT /path/to/save PATTERN_FILE}"
 LOCAL_USER="$(id -un)"
 
 SERVER_HOST="saveserver"
@@ -81,7 +82,8 @@ log "Starting borg backup"
 export BORG_RSH="ssh -p $SERVER_SSH_PORT -i $HOME/.ssh/borg_${CLIENT}_key -o IdentitiesOnly=yes -o BatchMode=yes"
 borg create --compression zstd,6 --stats \
   "${REPO}::$(date +%F_%H-%M-%S)" \
-  "$SRC"
+  "$SRC" \
+  "$PATTERN_FILE"
 
 # 4) Cleanup de la clé claire côté client (déclenché par le serveur via tunnel)
 log "Calling cleanup on server"
