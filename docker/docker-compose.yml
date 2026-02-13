@@ -1,7 +1,9 @@
 name: strongholder
 services:
   borg:
-    build: ./borg
+    build: 
+      context: .
+      dockerfile: borg/Dockerfile
     container_name: strongholder-borg
     ports:
       - "2222:22"
@@ -9,6 +11,7 @@ services:
       - srv_repot:/srv
       - srv_etc:/etc
       - srv_home:/home
+      - ./credentials/borg/id_ed25519.pub:/root/.ssh/id_ed25519.pub
     restart: unless-stopped
     networks:
       - backup_net
@@ -17,32 +20,27 @@ services:
     image: mariadb:12.2-rc
     container_name: strongholder-database
     restart: always
-    environment:
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
-      MARIADB_DATABASE: ${MARIADB_DATABASE}
-      MARIADB_USER: ${MARIADB_USER}
-      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    env_file: credentials/db/.env
     volumes:
       - db_data:/var/lib/mysql 
       - ./mariadb:/docker-entrypoint-initdb.d
     networks:
-      - backend_net
+      - database_net
 
   api:
     build: api
     container_name: strongholder-api
     restart: always
-    environment:
-      DB_HOST: ${MARIADB_HOST}
-      DB_USER: ${MARIADB_USER}
-      DB_PASSWORD: ${MARIADB_PASSWORD}
-      DB_PORT: ${MARIADB_PORT}
-      DB: ${MARIADB_DATABASE}
-      JWT_SECRET: ${JWT_SECRET}
+    env_file: credentials/api/.env
     depends_on:
       - db
+    volumes:
+      - ./credentials/api/id_ed25519:/root/.ssh/id_ed25519
+      - ./api/config:/root/.ssh/config
     networks:
+      - backup_net
       - backend_net
+      - database_net
 
 
   web:
@@ -52,8 +50,8 @@ services:
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
-      - ./nginx/certs/fullchain.pem:/etc/nginx/certs/fullchain.pem
-      - ./nginx/certs/privatekey.pem:/etc/nginx/certs/privatekey.pem
+      - ./credentials/nginx/fullchain.pem:/etc/nginx/certs/fullchain.pem
+      - ./credentials/nginx/privatekey.pem:/etc/nginx/certs/privatekey.pem
     depends_on:
       - api
     restart: unless-stopped
@@ -70,4 +68,6 @@ networks:
   backend_net:
     driver: bridge
   backup_net:
+    driver: bridge
+  database_net:
     driver: bridge

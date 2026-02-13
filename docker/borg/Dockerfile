@@ -11,10 +11,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 EXPOSE 22
 
-COPY server_scripts/ /usr/local/sbin/scripts/
+COPY borg/server_scripts/ /usr/local/sbin/scripts/
 
 RUN chmod +x /usr/local/sbin/scripts/*.sh
 
 RUN /usr/local/sbin/scripts/install_all.sh
 
-ENTRYPOINT ["bash", "-c", "exec /usr/sbin/sshd -D"]
+COPY borg/entrypoint.sh .
+
+RUN chmod +x entrypoint.sh
+
+ENTRYPOINT [ "./entrypoint.sh" ]

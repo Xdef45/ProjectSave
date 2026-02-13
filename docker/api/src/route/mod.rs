@@ -3,3 +3,4 @@ pub mod signin;
 pub mod get_repot_key;
 pub mod send_ssh_key;
 pub mod list_repot;
+pub mod ssh_test;

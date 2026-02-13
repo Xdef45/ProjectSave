@@ -6,6 +6,7 @@ set -x
 # config
 BACKUP_USER="api"
 BACKUP_HOME="/srv/repos/api"
+BACKUP_SSH_DIR="${BACKUP_HOME}/.ssh"
 
 TUNNEL_USER="tunnel"
 TUNNEL_HOME="/home/tunnel"
@@ -64,7 +65,12 @@ echo "[prepareserv] Ensure users"
 if ! id "${BACKUP_USER}" >/dev/null 2>&1; then
   useradd -d "${BACKUP_HOME}" -m -s /bin/sh "${BACKUP_USER}"
   usermod -aG borgkey $BACKUP_USER
-  #install clé
+  mkdir $BACKUP_SSH_DIR
+  chmod 700 $BACKUP_SSH_DIR
+  touch $BACKUP_SSH_DIR/authorized_keys
+  chmod 600 $BACKUP_SSH_DIR/authorized_keys
+  chown -R $BACKUP_USER:$BACKUP_USER $BACKUP_SSH_DIR
+  passwd -d api
 fi
 
 if ! id "${TUNNEL_USER}" >/dev/null 2>&1; then
@@ -167,9 +173,6 @@ echo "[install_all] Running gpggen"
 echo "[prepareserv] Ensure sshd drop-in for forwarding exists"
 install -d -m 0755 /etc/ssh/sshd_config.d
 
-echo "Server->client pubkey (à mettre côté client dans authorized_keys borghelper):"
-cat "${SERVER_TO_CLIENT_KEY}.pub"
-
 cat > /etc/ssh/sshd_config.d/50-backup-tunnel.conf <<'EOF'
 # Backup tunnel baseline
 AllowTcpForwarding yes
@@ -177,5 +180,20 @@ GatewayPorts no
 X11Forwarding no
 PermitTunnel no
 EOF
+
+echo "[prepareserv] Ensure key only connection is set up"
+
+cat > /etc/ssh/sshd_config.d/10-ssh-key-only.conf <<'EOF'
+# ssh public key only
+PasswordAuthentication no
+ChallengeResponseAuthentication no
+KbdInteractiveAuthentication no
+UsePAM no
+PubkeyAuthentication yes
+PermitRootLogin no
+EOF
+
+echo "Server->client pubkey (à mettre côté client dans authorized_keys borghelper):"
+cat "${SERVER_TO_CLIENT_KEY}.pub"
 
 echo "OK: backup_user=${BACKUP_USER}, repos=${BACKUP_HOME}, secrets=${SECRET_DIR}, server_keys=${SERVER_KEYS_DIR}"

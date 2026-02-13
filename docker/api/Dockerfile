@@ -20,6 +20,9 @@ RUN cargo build
 
 # We do not need the Rust toolchain to run the binary!
 FROM debian:13.3 AS runtime
-WORKDIR /usr/local/sbin/
+RUN apt update && apt upgrade -y
+RUN apt install openssh-client -y
+COPY entry-point.sh /
 COPY --from=builder /app/target/debug/strongholer /usr/local/sbin
-ENTRYPOINT ["strongholer"]
+RUN chmod u+x /entry-point.sh
+ENTRYPOINT ["/entry-point.sh"]
