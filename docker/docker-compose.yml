@@ -36,7 +36,6 @@ services:
       - db
     volumes:
       - ./credentials/api/id_ed25519:/root/.ssh/id_ed25519
-      - ./api/config:/root/.ssh/config
     networks:
       - backup_net
       - backend_net
