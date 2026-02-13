@@ -9,7 +9,6 @@ use argon2::{Argon2, Params};
 use std::{env, f32::MIN, result};
 use jsonwebtoken::errors::ErrorKind;
 use passcheck::PasswordChecker;
-use file_shred::shred_file;
 use std::path::Path;
 
 // argon2id paramètres
@@ -271,11 +270,7 @@ impl Auth {
         };
         if ! is_exist{
             return
-        }
-            match shred_file(path){
-                Ok(_)=>{let _ = tokio::fs::remove_file(path).await;},
-                Err(e)=>println!("Erreur lors de la supression de la clé Borg : {}", e.to_string())
-            };       
+        }     
     }
 
     /* Vérifier token jwt */
