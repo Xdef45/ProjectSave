@@ -85,6 +85,7 @@ chmod 0640 "$KEY_GPG"
 install -d -o "$BORG_USER" -g "$BORG_USER" -m 0700 "$HOME_DIR/.ssh"
 install -o "$BORG_USER" -g "$BORG_USER" -m 0600 /dev/null "$HOME_DIR/.ssh/authorized_keys"
 chmod -R 750 $HOME_DIR
+chown -R $BORG_USER:$API_USER
 
 
 echo "OK created/updated: user=$BORG_USER home=$HOME_DIR repo=$REPO_DIR"
