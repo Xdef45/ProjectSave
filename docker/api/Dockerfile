@@ -1,8 +1,6 @@
 FROM rust:alpine3.23 AS chef
 RUN apk update && apk upgrade
-RUN apk add curl pkgconf openssl-dev make build-base libc6-compat perl
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -O && sh curl_response --quiet -y
-ENV PATH=/root/.cargo/bin:$PATH
+RUN apk add pkgconf openssl-dev build-base perl
 RUN cargo install cargo-chef 
 WORKDIR /app
 
@@ -16,16 +14,16 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --recipe-path recipe.json
 # Build application
 COPY . .
-RUN cargo build
+RUN cargo build --release
 
 # We do not need the Rust toolchain to run the binary!
-FROM alpine:3.14 AS runtime
+FROM alpine:3.23 AS runtime
 RUN apk update && apk upgrade
-RUN apk add openssh-client libc6-compat
+RUN apk add openssh-client
 RUN adduser api -D
 RUN mkdir /home/api/.ssh
 RUN chown api:api /home/api/.ssh
 COPY entry-point.sh /
-COPY --from=builder /app/target/debug/strongholer /usr/local/bin/strongholer
+COPY --from=builder /app/target/release/strongholer /usr/local/bin/strongholer
 RUN chmod u+x /entry-point.sh
 ENTRYPOINT ["/entry-point.sh"]
