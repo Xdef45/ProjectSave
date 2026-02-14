@@ -7,6 +7,7 @@ use crate::authentification::middleware_auth;
 use serde_json;
 mod error;
 mod route;
+mod borg_script;
 use crate::route::{signup, signin, get_repot_key, send_ssh_key, list_repot, ssh_test};
 use openssh::{Session, KnownHosts};
 use std::os::unix::fs::PermissionsExt;
