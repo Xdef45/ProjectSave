@@ -4,6 +4,7 @@ set -euo pipefail
 set -x
 
 # config
+# ------------------
 BACKUP_USER="api"
 BACKUP_HOME="/srv/repos/api"
 BACKUP_SSH_DIR="${BACKUP_HOME}/.ssh"
@@ -13,20 +14,25 @@ TUNNEL_HOME="/home/tunnel"
 
 SECRET_DIR="/etc/backup_secrets"
 SECRET_GROUP="backupsecrets"
-SECRET_FILE="${SECRET_DIR}/key.pass"
+SECRET_FILE="${SECRET_DIR}/key.pass" #clé de chiffrement serveur
 
-SERVER_KEYS_DIR="/etc/backup_server_keys"   # plus clair que /etc/.ssh
+SERVER_KEYS_DIR="/etc/backup_server_keys" #clés ssh du serveur
 SERVER_TO_CLIENT_KEY="${SERVER_KEYS_DIR}/server_to_client_ed25519"
 
 TUNNEL_STATE_DIR="/var/lib/tunnel"          # utilisé par alloc_reverse_port.sh
 
 SUDOERS_BACKUP="/etc/sudoers.d/backup-maint"
+# ------------------
 
-CREATE_USER_SCRIPT="/usr/local/sbin/create_user.sh"
-INSTALL_CLIENT_KEY_SCRIPT="/usr/local/sbin/install_client_key.sh"
-SERVER_CLEANUP_SCRIPT="/usr/local/sbin/server_cleanup_key.sh"
+# Scripts
+# ------------------
+SCRIPTS_DIR="/usr/local/sbin/"
 
-TMPBASE="/tmp/borgkey"
+CREATE_USER_SCRIPT="${SCRIPTS_DIR}/create_user.sh"
+INSTALL_CLIENT_KEY_SCRIPT="${SCRIPTS_DIR}/install_client_key.sh"
+INSTALL_CLIENT_TUNNEL_SCRIPT="${SCRIPTS_DIR}/install_client_tunnel_key.sh"
+LIST_SCRIPT="${SCRIPTS_DIR}/list.sh"
+RESTORE_SCRIPT="${SCRIPTS_DIR}/restore.sh"
 
 SUDOERS_TUNNEL="/etc/sudoers.d/tunnel-backup"
 
@@ -34,29 +40,13 @@ SUDOERS_TUNNEL="/etc/sudoers.d/tunnel-backup"
 ALLOC_SCRIPT="/usr/local/sbin/alloc_reverse_port.sh"
 PREPAREDECRYPT_SCRIPT="/usr/local/sbin/preparedecrypt.sh"
 CLEANUP_SCRIPT="/usr/local/sbin/server_cleanup_key.sh"
+# ------------------
 
-#on set l'installatiion des packages
+TMPBASE="/tmp/borgkey"
+
+#need root
 need_root() { [ "$(id -u)" -eq 0 ] || { echo "Run as root." >&2; exit 1; }; }
-# pkg_install() {
-#   export DEBIAN_FRONTEND=noninteractive
-#   apt-get update -y
-#   apt-get install -y --no-install-recommends \
-#     openssh-server openssh-client \
-#     borgbackup \
-#     gpg \
-#     acl \
-#     rsync \
-#     ca-certificates \
-#     util-linux \
-#     sudo \
-#     gpg-agent
-# }
-
 need_root
-
-# echo "[prepareserv] Installing packages"
-# pkg_install
-
 # === Users ===
 
 groupadd borgkey
@@ -148,18 +138,11 @@ chmod 0440 "${SUDOERS_TUNNEL}"
 # sudoers pr backup
 echo "[prepareserv] Configure sudoers for ${BACKUP_USER} (restricted)"
 
-# Vérif que les scripts existent (sinon warning)
-for s in "$CREATE_USER_SCRIPT" "$INSTALL_CLIENT_KEY_SCRIPT"; do
-  if [ ! -x "$s" ]; then
-    echo "[prepareserv] WARNING: $s missing or not executable" >&2
-  fi
-done
-
 install -d -m 0755 -o root -g root /etc/sudoers.d
 
 cat > "${SUDOERS_BACKUP}" <<EOF
 # Allow backup user to run only specific maintenance scripts without password
-${BACKUP_USER} ALL=(root) NOPASSWD: ${CREATE_USER_SCRIPT}, ${INSTALL_CLIENT_KEY_SCRIPT}
+${BACKUP_USER} ALL=(root) NOPASSWD: ${CREATE_USER_SCRIPT}, ${INSTALL_CLIENT_KEY_SCRIPT}, ${RESTORE_SCRIPT}, ${LIST_SCRIPT}, ${INSTALL_CLIENT_TUNNEL_SCRIPT}
 EOF
 chmod 0440 "${SUDOERS_BACKUP}"
 
