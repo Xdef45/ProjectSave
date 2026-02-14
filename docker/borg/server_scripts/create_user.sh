@@ -8,6 +8,14 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+# --- Per-client server layout ---
+BORG_USER="$CLIENT"
+HOME_DIR="/srv/repos/${CLIENT}"
+REPO_DIR="${HOME_DIR}/repo"
+BOOTSTRAP_DIR="${HOME_DIR}/bootstrap"
+KEY_GPG="${BOOTSTRAP_DIR}/${CLIENT}.gpg"
+API_USER="api"
+
 # --- Global paths / prerequisites (prepared by prepserv.sh) ---
 SECRET_FILE="/etc/backup_secrets/key.pass"
 TMPBASE="/tmp/borgkey"
@@ -18,17 +26,10 @@ SERVER_TO_CLIENT_KEY="${SERVER_KEYS_DIR}/server_to_client_ed25519"
 
 [ -s "$SECRET_FILE" ] || { echo "missing/empty $SECRET_FILE (create it first)"; exit 1; }
 if [ ! -f "${TMPBASE}" ]; then
-  install -d -m 2770 -o api -g borgkey /tmp/borgkey "${TMPBASE}"
+  install -d -m 2770 -o $API_USER -g borgkey /tmp/borgkey "${TMPBASE}"
 fi
 # [ -d "$TUNNEL_STATE_BASE" ] || { echo "missing $TUNNEL_STATE_BASE (prepserv.sh must create it)"; exit 1; }
 
-# --- Per-client server layout ---
-BORG_USER="$CLIENT"
-HOME_DIR="/srv/repos/${CLIENT}"
-REPO_DIR="${HOME_DIR}/repo"
-BOOTSTRAP_DIR="${HOME_DIR}/bootstrap"
-KEY_GPG="${BOOTSTRAP_DIR}/${CLIENT}.gpg"
-API_USER="api"
 
 # temp key export (server-side, short-lived)
 KEY_TMP_CLEAR="${TMPBASE}/${CLIENT}.key"
@@ -41,9 +42,9 @@ if ! id -u "$BORG_USER" >/dev/null 2>&1; then
 fi
 
 # Ensure home + repo dirs with strict perms
-install -d -o "$BORG_USER" -g "$BORG_USER" -m 0700 "$HOME_DIR"
-install -d -o "$BORG_USER" -g "$BORG_USER" -m 0700 "$REPO_DIR"
-install -d -o "$BORG_USER" -g "$BORG_USER" -m 0700 "$BOOTSTRAP_DIR"
+install -d -o "$BORG_USER" -g "$API_USER" -m 0750 "$HOME_DIR"
+install -d -o "$BORG_USER" -g "$API_USER" -m 0750 "$REPO_DIR"
+install -d -o "$BORG_USER" -g "$API_USER" -m 0750 "$BOOTSTRAP_DIR"
 
 # Make sure alloc_reverse_port.sh never needs mkdir
 install -d -o root -g root -m 0700 "${TUNNEL_STATE_BASE}/${CLIENT}"
