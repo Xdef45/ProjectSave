@@ -36,7 +36,7 @@ services:
     depends_on:
       - db
     volumes:
-      - ./credentials/api/id_ed25519:/root/.ssh/id_ed25519
+      - ./credentials/api/id_ed25519:/home/api/.ssh/id_ed25519
     networks:
       - backup_net
       - backend_net

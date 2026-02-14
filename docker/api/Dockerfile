@@ -22,6 +22,9 @@ RUN cargo build
 FROM alpine:3.14 AS runtime
 RUN apk update && apk upgrade
 RUN apk add openssh-client libc6-compat
+RUN adduser api -D
+RUN mkdir /home/api/.ssh
+RUN chown api:api /home/api/.ssh
 COPY entry-point.sh /
 COPY --from=builder /app/target/debug/strongholer /usr/local/bin/strongholer
 RUN chmod u+x /entry-point.sh

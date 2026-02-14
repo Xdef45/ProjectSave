@@ -1,8 +1,11 @@
 #!/bin/sh
-cat <<EOF > /root/.ssh/config
+HOME_DIRECTORY=/home/api
+SSH_DIRECTORY=$HOME_DIRECTORY/.ssh
+cat <<EOF > $SSH_DIRECTORY/config
 Host borg
-    IdentityFile ~/.ssh/id_ed25519
+    IdentityFile $SSH_DIRECTORY/id_ed25519
 EOF
-chmod 600 /root/.ssh/id_ed25519
-chown root:root /root/.ssh/id_ed25519
-/usr/local/bin/strongholer
+chmod 600 -R $SSH_DIRECTORY/*
+chown api:api -R $SSH_DIRECTORY
+chown api:api /usr/local/bin/strongholer
+su api -c /usr/local/bin/strongholer
