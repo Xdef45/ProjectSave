@@ -155,17 +155,26 @@ impl Auth {
         // Dérivation de la clé
         let path_key = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY,uuid, uuid).to_string();
         println!("{}", path_key);
-        let mut master_key_file = match self.sftp_connexion.open(path_key).await {
+        let mut master_key_file = match self.sftp_connexion.open(&path_key).await {
             Ok(f)=>{println!("srv_respos_ouvert");f},
             Err(_)=> return Err(LogupState::ScriptError)
         };
-        let master_key_offset:usize = master_key_file.offset().try_into().expect("conversion échouer");
-        let mut buf= bytes::BytesMut::with_capacity(master_key_offset);
-        let master_key_byte = master_key_file.read_all(master_key_offset, buf).await.expect("read all échoué");
+        let master_key_metadata = master_key_file.metadata().await.expect("metadata échoué");
+        let master_key_len:usize = match master_key_metadata.len(){
+            Some(size)=>size.try_into().expect("conversion usize"),
+            None=> return Err(LogupState::ScriptError)
+        };
+        let mut buf= bytes::BytesMut::with_capacity(master_key_len);
+        let master_key_byte = master_key_file.read_all(master_key_len, buf).await.expect("read all échoué");
         let master_key = String::from_utf8(master_key_byte.to_vec()).expect("conversion to string échoué");
         println!("{}", master_key);
-        // let _ = fs::remove_file(path_key).await;
-        
+        let _ = match self.ssh_connexion.command("rm").arg(path_key).output().await{
+            Ok(o)=>{println!("script create_user");o},
+            Err(e)=>{
+                println!("{}", e.to_string());
+                return Err(LogupState::ScriptError)
+            }
+        };
 
         let key_encrypted = self.create_master_key_2(&kdf_client, master_key);
 
