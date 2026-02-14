@@ -14,6 +14,7 @@ HOME_DIR="/srv/repos/${CLIENT}"
 REPO_DIR="${HOME_DIR}/repo"
 BOOTSTRAP_DIR="${HOME_DIR}/bootstrap"
 KEY_GPG="${BOOTSTRAP_DIR}/${CLIENT}.gpg"
+RESTORE_PATH="/srv/repos/${CLIENT}/restore"
 API_USER="api"
 
 # --- Global paths / prerequisites (prepared by prepserv.sh) ---
@@ -45,6 +46,7 @@ fi
 install -d -o "$BORG_USER" -g "$API_USER" -m 0750 "$HOME_DIR"
 install -d -o "$BORG_USER" -g "$API_USER" -m 0750 "$REPO_DIR"
 install -d -o "$BORG_USER" -g "$API_USER" -m 0750 "$BOOTSTRAP_DIR"
+install -d -o "$BORG_USER" -g "$API_USER" -m 0750 "$RESTORE_PATH"
 
 # Make sure alloc_reverse_port.sh never needs mkdir
 install -d -o root -g root -m 0700 "${TUNNEL_STATE_BASE}/${CLIENT}"
