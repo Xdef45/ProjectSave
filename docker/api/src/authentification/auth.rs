@@ -100,8 +100,8 @@ impl Auth {
         })
         .username(&env::var("DB_USER").expect("DB_USER inexistant"))
         .database(&env::var("DB").expect("DB inexistant"));
-        let session_ssh = Session::connect_mux("ssh://api@borg:22", KnownHosts::Add).await.expect("Impossible de se connecter au serveur ssh");
-        let session_sftp = Session::connect_mux("ssh://api@borg:22", KnownHosts::Add).await.expect("Impossible de se connecter au serveur ssh");
+        let session_ssh = Session::connect_mux("ssh://borg", KnownHosts::Add).await.expect("Impossible de se connecter au serveur ssh");
+        let session_sftp = Session::connect_mux("ssh://borg", KnownHosts::Add).await.expect("Impossible de se connecter au serveur ssh");
         Self{
             db: MySqlPool::connect_with(opt).await.expect("Impossible de se connecter à la DB"),
             ssh_connexion: Arc::new(session_ssh),
