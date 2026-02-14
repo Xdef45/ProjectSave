@@ -13,6 +13,7 @@ use openssh::{Session, KnownHosts};
 use std::sync::Arc;
 use openssh_sftp_client::{Sftp, SftpOptions};
 use bytes::BytesMut;
+use crate::borg_script::create_user;
 
 // argon2id paramètres
 const MEMORY_COST: u32 = 64*1024;
@@ -135,47 +136,12 @@ impl Auth {
         let uuid = Uuid::new_v4().simple().to_string();
 
         // Création du répertoire utilisateur
-        let script_path=String::from("/usr/local/sbin/create_user.sh");
-        let _ = match self.ssh_connexion.command("sudo").args([&script_path, &uuid]).output().await{
-            Ok(o)=>{println!("script create_user");o},
-            Err(e)=>{
-                println!("{}", e.to_string());
-                return Err(LogupState::ScriptError)
-            }
+        let master_key = match create_user::create_user(&uuid, self.ssh_connexion.clone(), self.sftp_connexion.clone()).await{
+            Ok(key)=>key,
+            Err(_)=>return Err(LogupState::ScriptError)
         };
-        /*
-        let _ = match Command::new("create_user.sh")
-        .args(&[&uuid])
-        .output().await{
-            Ok(o)=> println!("Erreur : {}\n Sortie : {}", String::from_utf8(o.stderr).expect("msg"), String::from_utf8(o.stdout).expect("msg")),
-            Err(e)=> println!("La création de l'utilisateur à échouer{}",e.to_string())
-        };
-        */
 
         // Dérivation de la clé
-        let path_key = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY,uuid, uuid).to_string();
-        println!("{}", path_key);
-        let mut master_key_file = match self.sftp_connexion.open(&path_key).await {
-            Ok(f)=>{println!("srv_respos_ouvert");f},
-            Err(_)=> return Err(LogupState::ScriptError)
-        };
-        let master_key_metadata = master_key_file.metadata().await.expect("metadata échoué");
-        let master_key_len:usize = match master_key_metadata.len(){
-            Some(size)=>size.try_into().expect("conversion usize"),
-            None=> return Err(LogupState::ScriptError)
-        };
-        let mut buf= bytes::BytesMut::with_capacity(master_key_len);
-        let master_key_byte = master_key_file.read_all(master_key_len, buf).await.expect("read all échoué");
-        let master_key = String::from_utf8(master_key_byte.to_vec()).expect("conversion to string échoué");
-        println!("{}", master_key);
-        let _ = match self.ssh_connexion.command("rm").arg(path_key).output().await{
-            Ok(o)=>{println!("script create_user");o},
-            Err(e)=>{
-                println!("{}", e.to_string());
-                return Err(LogupState::ScriptError)
-            }
-        };
-
         let key_encrypted = self.create_master_key_2(&kdf_client, master_key);
 
         /* Ajout de l'utilisateur dans la base de données */
