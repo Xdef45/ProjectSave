@@ -1,6 +1,6 @@
-FROM debian:13.3 AS chef
-RUN apt update && apt upgrade -y
-RUN apt install curl pkg-config libssl-dev make build-essential -y
+FROM rust:alpine3.23 AS chef
+RUN apk update && apk upgrade
+RUN apk add curl pkgconf openssl-dev make build-base libc6-compat perl
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -O && sh curl_response --quiet -y
 ENV PATH=/root/.cargo/bin:$PATH
 RUN cargo install cargo-chef 
@@ -19,10 +19,10 @@ COPY . .
 RUN cargo build
 
 # We do not need the Rust toolchain to run the binary!
-FROM debian:13.3 AS runtime
-RUN apt update && apt upgrade -y
-RUN apt install openssh-client -y
+FROM alpine:3.14 AS runtime
+RUN apk update && apk upgrade
+RUN apk add openssh-client libc6-compat
 COPY entry-point.sh /
-COPY --from=builder /app/target/debug/strongholer /usr/local/sbin
+COPY --from=builder /app/target/debug/strongholer /usr/local/bin/strongholer
 RUN chmod u+x /entry-point.sh
 ENTRYPOINT ["/entry-point.sh"]
