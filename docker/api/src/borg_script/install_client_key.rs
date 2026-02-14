@@ -8,7 +8,7 @@ const CLIENT_DIRECTORY: &str = "/srv/repos";
 pub async fn install_client_key(uuid:String, filepath:String, ssh_connexion: Arc<Session>){
     let script_path=String::from("/usr/local/sbin/install_client_key.sh");
     match ssh_connexion.command("sudo").args([&script_path, &uuid, &filepath]).output().await{
-        Ok(o)=>println!("script create_user"),
+        Ok(o)=>println!("script install_client_ssh"),
         Err(e)=>println!("{}", e.to_string())
     };
 }
