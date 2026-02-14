@@ -32,8 +32,6 @@ done
 BORG_KEYS_DIR="${USER_HOME}/.config/borg/keys"
 LOCAL_SSH_DIR="${USER_HOME}/.ssh"
 
-# Dispatcher forcé (clé server->client sur borghelper)
-DISPATCH_PATH="/usr/local/sbin/borghelper_dispatch.sh"
 SUDOERS_FILE="/etc/sudoers.d/borghelper"
 
 echo "[prepclient] Installing required packages"
