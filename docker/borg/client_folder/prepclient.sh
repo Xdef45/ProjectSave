@@ -5,8 +5,11 @@ set -euo pipefail
 
 CLIENT_USER="$USER"                 # l’utilisateur qui lance borg (subject to change lol)
 BORGHELPER_USER="borghelper"
+BORGHELPER_HOME="/home/${BORGHELPER_USER}"
+BORGHELPER_SSH_DIR="${BORGHELPER_HOME}/.ssh"
 
 SERVER_HOST="saveserver"
+SERVER_IP=""
 
 USER_HOME="$(getent passwd "$CLIENT_USER" | cut -d: -f6)"
 [ -n "$USER_HOME" ] || { echo "Can't resolve home for $CLIENT_USER"; exit 1; }
@@ -29,8 +32,6 @@ done
 BORG_KEYS_DIR="${USER_HOME}/.config/borg/keys"
 LOCAL_SSH_DIR="${USER_HOME}/.ssh"
 
-# Dispatcher forcé (clé server->client sur borghelper)
-DISPATCH_PATH="/usr/local/sbin/borghelper_dispatch.sh"
 SUDOERS_FILE="/etc/sudoers.d/borghelper"
 
 echo "[prepclient] Installing required packages"
@@ -48,8 +49,8 @@ touch "${LOCAL_SSH_DIR}/known_hosts"
 chown "${CLIENT_USER}:${CLIENT_USER}" "${LOCAL_SSH_DIR}/known_hosts"
 chmod 0600 "${LOCAL_SSH_DIR}/known_hosts"
 
-# echo "[prepclient] Pin server host key (avoid interactive prompts)"
-echo "xxx.xxx.xxx.xxx saveserver" >> sudo tee -aa /etc/hosts > /dev/null
+echo "ajout de l'ip du server"
+echo "${SERVER_IP} ${SERVER_HOST}" | sudo tee -a /etc/hosts > /dev/null
 # accepte la clé du serveur (1 fois) sans interaction
 ssh-keyscan -H "${SERVER_HOST}" >> "${LOCAL_SSH_DIR}/known_hosts" 2>/dev/null || true
 
@@ -58,17 +59,20 @@ if ! id "${BORGHELPER_USER}" >/dev/null 2>&1; then
   useradd -m -s /bin/bash "${BORGHELPER_USER}"
 fi
 
-echo "[prepclient] Configure sudoers for borghelper (strict)"
+echo "[prepclient] Configure sudoers for borghelper"
 cat > "${SUDOERS_FILE}" <<'EOF'
 borghelper ALL=(root) NOPASSWD: /bin/cat, /usr/bin/tee, /usr/bin/install, /bin/chown, /bin/chmod, /bin/rm
 EOF
 chmod 0440 "${SUDOERS_FILE}"
 
 echo "[prepclient] Ensure borghelper authorized_keys directory exists"
+if [ ! -f $BORGHELPER_SSH_DIR/authorized_keys ]; then
 install -d -m 0700 -o borghelper -g borghelper /home/borghelper/.ssh
-touch /home/borghelper/.ssh/authorized_keys
-chown borghelper:borghelper /home/borghelper/.ssh/authorized_keys
-chmod 0600 /home/borghelper/.ssh/authorized_keys
+  touch $BORGHELPER_SSH_DIR/authorized_keys
+  chown borghelper:borghelper $BORGHELPER_SSH_DIR/authorized_keys
+  chmod 0600 $BORGHELPER_SSH_DIR/authorized_keys
+fi
+
 
 echo "[prepclient] Creating tunnel keys"
 
@@ -85,38 +89,6 @@ fi
 echo "OK"
 echo "Tunnel pubkey: ${TUNNEL_KEY}.pub"
 echo "Borg pubkey:   ${BORG_KEY}.pub"
-
-
-echo "[prepclient] Install keys from bootstrap folder (if present)"
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BOOT_KEYS_DIR="${SCRIPT_DIR}/keys"
-
-# 1) known_hosts (pin host key du serveur)
-if [ -f "${BOOT_KEYS_DIR}/known_hosts" ]; then
-  echo "[prepclient] Installing provided known_hosts"
-  install -m 0600 -o "${CLIENT_USER}" -g "${CLIENT_USER}" \
-    "${BOOT_KEYS_DIR}/known_hosts" "${LOCAL_SSH_DIR}/known_hosts"
-fi
-
-# 2) server_to_client.pub -> authorized_keys de borghelper
-if [ -f "${BOOT_KEYS_DIR}/server_to_client.pub" ]; then
-  echo "[prepclient] Installing server_to_client.pub into borghelper authorized_keys"
-
-  # Option: clé brute (simple)
-  PUB="$(cat "${BOOT_KEYS_DIR}/server_to_client.pub")"
-
-  # Option recommandée: on force une commande
-  LINE="command=\"${DISPATCH_PATH}\" ${PUB}"
-
-  grep -qxF "${LINE}" /home/borghelper/.ssh/authorized_keys 2>/dev/null || \
-    echo "${LINE}" >> /home/borghelper/.ssh/authorized_keys
-
-  chown borghelper:borghelper /home/borghelper/.ssh/authorized_keys
-  chmod 0600 /home/borghelper/.ssh/authorized_keys
-fi
-
-
 
 echo "[prepclient] Done."
 

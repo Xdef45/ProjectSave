@@ -84,7 +84,7 @@ chmod 0640 "$KEY_GPG"
 # --- Prepare SSH skeleton for install_client_key.sh (no mkdir elsewhere) ---
 install -d -o "$BORG_USER" -g "$BORG_USER" -m 0700 "$HOME_DIR/.ssh"
 install -o "$BORG_USER" -g "$BORG_USER" -m 0600 /dev/null "$HOME_DIR/.ssh/authorized_keys"
-chmod -R 750 $HOME_DIR
+chmod -R 770 $HOME_DIR
 chown -R $BORG_USER:$API_USER $HOME_DIR
 
 
