@@ -85,8 +85,8 @@ struct MysqlCredentials{
 #[derive(Clone)]
 pub struct Auth{
     db: MySqlPool,
-    ssh_connexion: Arc<Session>,
-    sftp_connexion: Arc<Sftp>
+    pub ssh_connexion: Arc<Session>,
+    pub sftp_connexion: Arc<Sftp>
 }
 
 impl Auth {

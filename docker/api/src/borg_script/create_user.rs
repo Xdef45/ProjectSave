@@ -1,7 +1,6 @@
-use std::path::Path;
-use openssh::{Session, KnownHosts};
+use openssh::Session;
 use std::sync::Arc;
-use openssh_sftp_client::{Sftp, SftpOptions};
+use openssh_sftp_client::Sftp;
 use bytes::BytesMut;
 use crate::authentification::auth::LogupState;
 const CLIENT_DIRECTORY: &str = "/srv/repos";
