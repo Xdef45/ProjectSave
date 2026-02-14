@@ -12,7 +12,7 @@ DST_DIR="/usr/local/sbin"
 
 echo "[install_all] Installing server scripts to ${DST_DIR}"
 
-install -d -m 0755 -o root -g root "${DST_DIR}"
+install -d -m 0700 -o root -g root "${DST_DIR}"
 
 for s in \
   alloc_reverse_port.sh \
@@ -26,8 +26,10 @@ for s in \
   list.sh \
   restore.sh
 do
-  install -m 0755 -o root -g root "${SRC_DIR}/${s}" "${DST_DIR}/${s}"
+  install -m 0700 -o root -g root "${SRC_DIR}/${s}" "${DST_DIR}/${s}"
 done
+
+rm -r /usr/local/sbin/scripts
 
 echo "[install_all] Done."
 
