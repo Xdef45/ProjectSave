@@ -13,10 +13,9 @@ install -d -m 0755 -o root -g root "$DST_DIR"
 
 for s in \
   prepclient.sh \
-  client_genkey.sh \
-  client_fetch_bootstrap_key.sh \
   client_backup.sh \
-  borghelper_dispatch.sh
+  borghelper_dispatch.sh \
+  install_borghelper_key.sh
 do
   install -m 0755 -o root -g root "$SRC_DIR/$s" "$DST_DIR/$s"
 done
