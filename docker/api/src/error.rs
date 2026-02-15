@@ -11,7 +11,8 @@ pub enum APIError{
     ConversionVecToString,
     Ssh,
     Sftp,
-    Write
+    Write,
+    UTF8
 
 }
 
@@ -29,7 +30,10 @@ impl error::ResponseError for APIError{
             APIError::Sftp=>"106",
 
             // File
-            APIError::Write=>"200"
+            APIError::Write=>"200",
+
+            //Convertion
+            APIError::UTF8=>"300"
         };
         HttpResponse::BadRequest().body(response)
     }
