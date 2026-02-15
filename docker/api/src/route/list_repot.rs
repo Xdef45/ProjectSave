@@ -4,7 +4,6 @@ use crate::error::APIError;
 use serde_json;
 const CLIENT_DIRECTORY: &str = "/srv/repos"; 
 use tokio::process::Command;
-const MAX_FILE_SIZE_SSH_KEY: usize = 50 * 1024 * 1024;
 use serde::{Deserialize, Serialize};
 
 

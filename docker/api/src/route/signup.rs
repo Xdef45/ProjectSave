@@ -13,35 +13,27 @@ async fn signup(id: web::Json<Login>, auth: web::Data<Auth>) -> HttpResponse{
     let token = match auth.signup(login).await {
         Ok(token)=>token,
         Err(state)=>{
-            match state{
+            let response_error = match state{
                 LogupState::AlreadyExist => {
-                    println!("User: {} already exist", id.username);
-                    return HttpResponse::BadRequest().body("1")},
+                    println!("User: {} already exist", id.username);"1"},
                 LogupState::UsernameTooShort => {
-                    println!("User: {} username too short", id.username);
-                    return HttpResponse::BadRequest().body("2")},
+                    println!("User: {} username too short", id.username);"2"},
                 LogupState::InvalidPassword => {
-                    println!("User: {} invalid password", id.username);
-                    return HttpResponse::BadRequest().body("3")},
+                    println!("User: {} invalid password", id.username);"3"},
                 LogupState::PasswordTooShort => {
-                    println!("User: {} password too short", id.username);
-                    return HttpResponse::BadRequest().body("4")},
+                    println!("User: {} password too short", id.username);"4"},
                 LogupState::SpecialCharMissing => {
-                    println!("User: {} password special char missing", id.username);
-                    return HttpResponse::BadRequest().body("5")},
+                    println!("User: {} password special char missing", id.username);"5"},
                 LogupState::MajusculeMissing => {
-                    println!("User: {} password majuscule missing", id.username);
-                    return HttpResponse::BadRequest().body("6")},
+                    println!("User: {} password majuscule missing", id.username);"6"},
                 LogupState::NumberMissing => {
-                    println!("User: {} password number missing", id.username);
-                    return HttpResponse::BadRequest().body("7")},
+                    println!("User: {} password number missing", id.username);"7"},
                 LogupState::KDFError => {
-                    println!("User: {} error during kdf creation", id.username);
-                    return HttpResponse::BadRequest().body("8")},
+                    println!("User: {} error during kdf creation", id.username);"8"},
                 LogupState::ScriptError => {
-                    println!("User: {} error during script", id.username);
-                    return HttpResponse::BadRequest().body("9")}
-            }
+                    println!("User: {} error during script", id.username);"9"}
+            };
+            return HttpResponse::BadRequest().body(response_error)
         }
     };
 

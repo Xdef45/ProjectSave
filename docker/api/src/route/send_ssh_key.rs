@@ -1,8 +1,6 @@
 use actix_web::{post, HttpResponse, HttpRequest, web};
 use crate::authentification::auth::Auth;
 use crate::borg_script::install_client_key::install_client_key;
-const CLIENT_DIRECTORY: &str = "/srv/repos"; 
-const MAX_FILE_SIZE_SSH_KEY: usize = 50 * 1024 * 1024;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
