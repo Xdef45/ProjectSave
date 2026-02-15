@@ -1,8 +1,6 @@
 use openssh::Session;
 use std::sync::Arc;
-use openssh_sftp_client::{Sftp, file};
-use bytes::BytesMut;
-use crate::authentification::auth::LogupState;
+use openssh_sftp_client::Sftp;
 
 pub async fn install_client_key(uuid: String, ssh_key:&String, filepath:String, ssh_connexion: Arc<Session>, sftp_connexion:Arc<Sftp>){
     // Crée le fichier
@@ -14,7 +12,7 @@ pub async fn install_client_key(uuid: String, ssh_key:&String, filepath:String, 
     /* Execution du script d'ajout de la clé ssh */
     let script_path=String::from("/usr/local/sbin/install_client_key.sh");
     match ssh_connexion.command("sudo").args([&script_path, &uuid, &filepath]).output().await{
-        Ok(o)=>println!("script install_client_ssh"),
+        Ok(_)=>println!("script install_client_ssh"),
         Err(e)=>println!("{}", e.to_string())
     };
     // suppresion de la clé

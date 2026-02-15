@@ -1,4 +1,3 @@
-use actix_web::web::to;
 use sqlx::{mysql, MySqlPool};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
@@ -12,7 +11,6 @@ use std::path::Path;
 use openssh::{Session, KnownHosts};
 use std::sync::Arc;
 use openssh_sftp_client::{Sftp, SftpOptions};
-use bytes::BytesMut;
 use crate::borg_script::create_user;
 
 // argon2id paramètres
