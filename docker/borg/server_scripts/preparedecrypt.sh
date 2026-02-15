@@ -33,7 +33,7 @@ SSH_TUN_OPTS=(
 )
 
 # 1) pull fichier chiffr   client -> stockage temporaire
-ssh "${SSH_TUN_OPTS[@]}" borghelper@localhost "pullkey $CLIENT" > "$ENC_LOCAL"
+ssh "${SSH_TUN_OPTS[@]}" borghelper@localhost "pullkey $CLIENT $LOCAL_USER" > "$ENC_LOCAL"
 test -s "$ENC_LOCAL" || { echo "pullkey returned empty data" >&2; exit 2; }
 chmod 600 "$ENC_LOCAL"
 
