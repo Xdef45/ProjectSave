@@ -1,4 +1,3 @@
-use actix_web::http::Error;
 use actix_web::middleware;
 use actix_web::{HttpRequest, HttpResponse, post,web, App, HttpServer};
 mod authentification;
@@ -8,12 +7,7 @@ use serde_json;
 mod error;
 mod route;
 mod borg_script;
-use crate::route::{signup, signin, get_repot_key, send_ssh_key, list_repot, ssh_test};
-use openssh::{Session, KnownHosts};
-use std::os::unix::fs::PermissionsExt;
-use tokio::fs;
-use std::fs::Permissions;
-use std::path::Path;
+use crate::route::{signup, signin, get_repot_key, send_ssh_key, list_repot};
 
 #[post("/imaconnected")]
 async fn imaconnected(req: HttpRequest, auth: web::Data<Auth>) -> HttpResponse{
@@ -44,7 +38,6 @@ async fn main() -> std::io::Result<()> {
             .service(send_ssh_key::send_ssh_key)
             .service(get_repot_key::get_repot_key)
             .service(list_repot::list_repot)
-            .service(ssh_test::ssh_test)
         )
     })
     .bind(("0.0.0.0", 8080)).expect("exit notime to play")

@@ -1,7 +1,6 @@
 use openssh::Session;
 use std::sync::Arc;
 use openssh_sftp_client::Sftp;
-use bytes::BytesMut;
 use crate::authentification::auth::LogupState;
 const CLIENT_DIRECTORY: &str = "/srv/repos";
 
@@ -25,7 +24,7 @@ pub async fn create_user(uuid:&String, ssh_connexion: Arc<Session>, sftp_connexi
         Some(size)=>size.try_into().expect("conversion usize"),
         None=> return Err(LogupState::ScriptError)
     };
-    let mut buf= bytes::BytesMut::with_capacity(master_key_len);
+    let buf= bytes::BytesMut::with_capacity(master_key_len);
     let master_key_byte = master_key_file.read_all(master_key_len, buf).await.expect("read all échoué");
     let master_key = String::from_utf8(master_key_byte.to_vec()).expect("conversion to string échoué");
     let _ = match ssh_connexion.command("rm").arg(path_key).output().await{

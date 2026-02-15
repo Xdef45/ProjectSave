@@ -1,5 +1,4 @@
 use actix_web::{post, HttpResponse, HttpRequest, web};
-use openssh_sftp_client::file;
 use crate::authentification::auth::Auth;
 use crate::borg_script::install_client_key::install_client_key;
 const CLIENT_DIRECTORY: &str = "/srv/repos"; 
@@ -7,13 +6,13 @@ const MAX_FILE_SIZE_SSH_KEY: usize = 50 * 1024 * 1024;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-struct ssh_key{
+struct SshKey{
     ssh: String
 }
 
 
 #[post("send_ssh_key")]
-async fn send_ssh_key(req: HttpRequest, ssh_key: web::Json<ssh_key>, auth: web::Data<Auth>)->HttpResponse{
+async fn send_ssh_key(req: HttpRequest, ssh_key: web::Json<SshKey>, auth: web::Data<Auth>)->HttpResponse{
     /* Extraction du cookie JWT */
     let Some(cookie) = req.cookie("Bearer") else{
         return HttpResponse::Ok().body("Pas de cookie Bearer")
