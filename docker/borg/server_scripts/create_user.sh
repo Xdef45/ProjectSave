@@ -87,6 +87,12 @@ install -o "$BORG_USER" -g "$BORG_USER" -m 0600 /dev/null "$HOME_DIR/.ssh/author
 chmod -R 770 $HOME_DIR
 chown -R $BORG_USER:$API_USER $HOME_DIR
 
+#perms for ssh
+chmod 700 $HOME_DIR/.ssh
+chmod 600 $HOME_DIR/.ssh/authorized_keys
+chown -R $BORG_USER:$BORG_USER $HOME_DIR/.ssh
+chmod go-w $HOME_DIR
+
 
 echo "OK created/updated: user=$BORG_USER home=$HOME_DIR repo=$REPO_DIR"
 echo "Bootstrap key (encrypted): $KEY_GPG"
