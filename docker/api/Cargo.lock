@@ -3384,6 +3384,7 @@ dependencies = [
  "argon2",
  "bytes",
  "derive_more 2.1.1",
+ "futures-core",
  "futures-util",
  "hex",
  "jsonwebtoken",
