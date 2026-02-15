@@ -1,14 +1,23 @@
 #!/bin/bash
-set -x
+#set -x
 set -euo pipefail
 
 log() {
   echo "[client_backup] $(date '+%H:%M:%S') $*"
 }
 
+
 CLIENT="${1:?Usage: $0 CLIENT /path/to/save}"
 PATTERN_FILE="${2:?Usage: $0 CLIENT /path/to/save PATTERN_FILE}"
 LOCAL_USER="$(id -un)"
+
+LOG_FILE="logs/$(date +%F_%H-%M-%S)_${CLIENT}.log"
+
+if [ ! -d logs ]; then
+mkdir logs
+fi
+
+exec > >(tee -a "$LOG_FILE") 2>&1
 
 SERVER_HOST="saveserver"
 SERVER_SSH_PORT=2222 # ça va changer
@@ -60,6 +69,10 @@ SSH_OPTS=(
   -o ServerAliveInterval=15
   -o ServerAliveCountMax=3
   -p "$SERVER_SSH_PORT"
+  -o LogLevel=ERROR
+  -o StrictHostKeyChecking=no
+  -o UserKnownHostsFile=/dev/null
+  -o GlobalKnownHostsFile=/dev/null
 )
 
 # 1) Ouvrir le reverse tunnel (background)
