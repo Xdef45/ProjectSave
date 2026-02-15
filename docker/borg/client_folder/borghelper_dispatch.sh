@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-
+set -x
 cmd="${SSH_ORIGINAL_COMMAND:-}"
 
 die(){ echo "ERR: $*" >&2; exit 2; }

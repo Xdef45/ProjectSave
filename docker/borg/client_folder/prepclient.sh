@@ -1,32 +1,34 @@
 #!/bin/bash
 set -euo pipefail
+set -x
 
-[ "$(id -u)" -eq 0 ] || { echo "Run as root"; exit 1; }
+# [ "$(id -u)" -eq 0 ] || { echo "Run as root"; exit 1; }
 
-CLIENT_USER="$USER"                 # l’utilisateur qui lance borg (subject to change lol)
+CLIENT_USER="${1:?Usage: $0 USER CLIENT_ID}"            # l’utilisateur qui lance borg (subject to change lol)
+CLIENT_ID="${2:?Usage: $USER CLIENT_ID}"
 BORGHELPER_USER="borghelper"
 BORGHELPER_HOME="/home/${BORGHELPER_USER}"
 BORGHELPER_SSH_DIR="${BORGHELPER_HOME}/.ssh"
 
 SERVER_HOST="saveserver"
-SERVER_IP=""
+SERVER_IP="strongholder-borg"
 
 USER_HOME="$(getent passwd "$CLIENT_USER" | cut -d: -f6)"
 [ -n "$USER_HOME" ] || { echo "Can't resolve home for $CLIENT_USER"; exit 1; }
 
-USER_HOME="/home/$USER"
+USER_HOME="/home/$CLIENT_USER"
 SSH_DIR="${USER_HOME}/.ssh"
-TUNNEL_KEY="${SSH_DIR}/tunnel_key"
-BORG_KEY="${SSH_DIR}/borg_${CLIENT_USER}_key"
+TUNNEL_KEY="${SSH_DIR}/borg_${CLIENT_ID}_tunnel_key"
+BORG_KEY="${SSH_DIR}/borg_${CLIENT_ID}_key"
 
-echo "[prepclient] Install all local .sh scripts to /usr/local/sbin"
+# echo "[prepclient] Install all local .sh scripts to /usr/local/sbin"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-for f in "${SCRIPT_DIR}"/*.sh; do
-  [ -e "$f" ] || continue
-  install -m 0755 -o root -g root "$f" "/usr/local/sbin/$(basename "$f")"
-done
+# for f in "${SCRIPT_DIR}"/*.sh; do
+#   [ -e "$f" ] || continue
+#   install -m 0755 -o root -g root "$f" "/usr/local/sbin/$(basename "$f")"
+# done
 
 # Dossiers client (doivent exister avant les backups)
 BORG_KEYS_DIR="${USER_HOME}/.config/borg/keys"
@@ -76,14 +78,14 @@ fi
 
 echo "[prepclient] Creating tunnel keys"
 
-install -d -m 0700 -o $USER -g $USER "$SSH_DIR"
+install -d -m 0700 -o $CLIENT_USER -g $CLIENT_USER "$SSH_DIR"
 
 if [ ! -f "$TUNNEL_KEY" ]; then
-  sudo -u $USER ssh-keygen -t ed25519 -a 64 -f "$TUNNEL_KEY" -N "" -C "tunnel_${CLIENT}"
+  sudo -u $CLIENT_USER ssh-keygen -t ed25519 -a 64 -f "$TUNNEL_KEY" -N "" -C "tunnel_${CLIENT_ID}"
 fi
 
 if [ ! -f "$BORG_KEY" ]; then
-  sudo -u $USER ssh-keygen -t ed25519 -a 64 -f "$BORG_KEY" -N "" -C "borg_${CLIENT}"
+  sudo -u $CLIENT_USER ssh-keygen -t ed25519 -a 64 -f "$BORG_KEY" -N "" -C "borg_${CLIENT_ID}"
 fi
 
 echo "OK"

@@ -101,7 +101,7 @@ install -d -m 0700 -o root -g root "${TUNNEL_STATE_DIR}/clients"
 
 # clé server to client
 echo "[prepareserv] Prepare server->client SSH key in ${SERVER_KEYS_DIR}"
-install -d -m 0700 -o root -g root "${SERVER_KEYS_DIR}"
+install -d -m 0770 -o root -g api "${SERVER_KEYS_DIR}"
 
 if [ ! -f "${SERVER_TO_CLIENT_KEY}" ]; then
   ssh-keygen -t ed25519 -a 64 -f "${SERVER_TO_CLIENT_KEY}" -N "" -C "server_to_client"
