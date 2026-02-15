@@ -6,8 +6,8 @@ pub async fn install_client_key(uuid: String, ssh_key:&String, filepath:String, 
     // Crée le fichier
     let mut f = sftp_connexion.create(filepath.clone())
         .await.expect("Création du fichier à échouer");
-    let _ =f.write(ssh_key.as_bytes());
-    let _ = f.close();
+    let _ = f.write(ssh_key.as_bytes()).await
+    let _ = f.close().await;
 
     /* Execution du script d'ajout de la clé ssh */
     let script_path=String::from("/usr/local/sbin/install_client_key.sh");
