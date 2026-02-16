@@ -1,6 +1,5 @@
 #!/bin/bash
 set -euo pipefail
-set -x
 
 CLIENT="${1:?Usage: $0 CLIENT ARCHIVE}" #nom client
 
