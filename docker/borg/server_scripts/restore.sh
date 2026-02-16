@@ -10,6 +10,8 @@ TARGET="${3-}"
 REPOSITORY_PATH="/srv/repos/${CLIENT}/repo/"
 RESTORE_PATH="/srv/repos/${CLIENT}/restore"
 
+
+HOME_DIR="/srv/repos/${CLIENT}"
 KEY_CLEAR="${HOME_DIR}/.config/borg/keys/srv_repos_${CLIENT}_repo"
 API_USER="api"
 
