@@ -14,7 +14,7 @@ pub struct Archives{
     archives: Vec<ArchiveData>
 }
 
-pub async fn list_archive(uuid: String, ssh_connexion: Arc<Session>)->Result<Archives, APIError>{
+pub async fn list_archive(uuid: String, ssh_connexion: Arc<Session>, archive_name:Option<String>)->Result<Archives, APIError>{
     let output = match ssh_connexion.command("sudo").args(["/usr/local/sbin/list.sh", uuid.as_str()]).output().await{
         Ok(o)=>o,
         Err(_)=>{println!("connexion ssh erreur");return Err(APIError::Ssh)}

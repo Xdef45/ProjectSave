@@ -12,7 +12,8 @@ pub enum APIError{
     Ssh,
     Sftp,
     Write,
-    UTF8
+    UTF8,
+    Json
 
 }
 
@@ -33,7 +34,8 @@ impl error::ResponseError for APIError{
             APIError::Write=>"200",
 
             //Convertion
-            APIError::UTF8=>"300"
+            APIError::UTF8=>"300",
+            APIError::Json=>"301"
         };
         HttpResponse::BadRequest().body(response)
     }
