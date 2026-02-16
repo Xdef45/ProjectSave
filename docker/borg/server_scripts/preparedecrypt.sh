@@ -1,106 +1,54 @@
 #!/bin/bash
-#set -x
+#preparedecrypt
 set -euo pipefail
 
-log() {
-  echo "[client_backup] $(date '+%H:%M:%S') $*"
-}
+CLIENT="${1:?Usage: $0 CLIENT REVERSE_PORT}" #nom client
+REVERSE_PORT="${2:?Usage: $0 CLIENT REVERSE_PORT}" 
+LOCAL_USER="${3:?Usage: $0 CLIENT REVERSE_PORT}"
 
+SERVER_TO_CLIENT_KEY="/home/tunnel/.ssh/server_to_client_ed25519" #cl      feed pour pouvoir reverse
+SERVER_GPG_PASSFILE="/etc/backup_secrets/key.pass" # cl   gpg
 
-CLIENT="${1:?Usage: $0 CLIENT /path/to/save}"
-PATTERN_FILE="${2:?Usage: $0 CLIENT /path/to/save PATTERN_FILE}"
-LOCAL_USER="$(id -un)"
+# dossiers temporaires
+TMPBASE="/tmp/borgkey_tunnel"
+CLIENT_TMP="${TMPBASE}/${CLIENT}"
+PLAIN_LOCAL="${TMPBASE}/${CLIENT}.key"
+ENC_LOCAL="${CLIENT_TMP}/${CLIENT}.gpg"
 
-LOG_FILE="logs/$(date +%F_%H-%M-%S)_${CLIENT}.log"
+# Pr  -requis
+[ -f "$SERVER_TO_CLIENT_KEY" ] || { echo "missing $SERVER_TO_CLIENT_KEY"; exit 1; }
+[ -f "$SERVER_GPG_PASSFILE" ] || { echo "missing $SERVER_GPG_PASSFILE"; exit 1; }
 
-if [ ! -d logs ]; then
-mkdir logs
-fi
+# Dossiers
+install -d -m 0700 -o tunnel -g tunnel "$CLIENT_TMP"
+install -d -m 700 "$TMPBASE"
 
-exec > >(tee -a "$LOG_FILE") 2>&1
-
-SERVER_HOST="saveserver"
-SERVER_SSH_PORT=2222 # ça va changer
-
-# User serveur qui héberge le repo + accepte le reverse tunnel
-# (selon ton modèle: tunnel@server ou borg_<client>@server)
-SERVER_USER="tunnel"
-
-#Clé client -> serveur (reverse tunnel + commande remote)
-TUNNEL_SSH_KEY="$HOME/.ssh/borg_${CLIENT}_tunnel_key"
-CLIENT_SSH_KEY="$HOME/.ssh/borg_${CLIENT}_key"
-
-TUNNEL_PID=""
-
-cleanup() {
-  if [[ -n "${TUNNEL_PID}" ]] && kill -0 "$TUNNEL_PID" 2>/dev/null; then
-    kill "$TUNNEL_PID" 2>/dev/null || true
-    wait "$TUNNEL_PID" 2>/dev/null || true
-  fi
-}
-trap cleanup EXIT INT TERM
-
-# Port reverse choisi (idéalement unique par client, récupéré via API si tu veux)
-log "Requesting reverse port from server"
-REVERSE_PORT="$(
-  ssh -i $TUNNEL_SSH_KEY \
-    -p $SERVER_SSH_PORT \
-    -o IdentitiesOnly=yes \
-    -o BatchMode=yes \
-    tunnel@saveserver \
-    "sudo /usr/local/sbin/alloc_reverse_port.sh '${CLIENT}'"
-)"
-log "Received port: $REVERSE_PORT"
-
-if [[ ! "$REVERSE_PORT" =~ ^[0-9]+$ ]]; then
-  echo "Invalid port received: $REVERSE_PORT" >&2
-  exit 1
-fi
-
-# Repo borg sur le serveur (exemple)
-# IMPORTANT: borg create tourne sur le client, et le serveur doit autoriser borg serve
-REPO="ssh://${CLIENT}@${SERVER_HOST}:${SERVER_SSH_PORT}/srv/repos/${CLIENT}/repo"
-
-# On ouvre le tunnel en background, puis on orchestre via SSH sur le serveur.
-SSH_OPTS=(
-  -i "$TUNNEL_SSH_KEY"
-  -o IdentitiesOnly=yes
-  -o ExitOnForwardFailure=yes
-  -o ServerAliveInterval=15
-  -o ServerAliveCountMax=3
-  -p "$SERVER_SSH_PORT"
-  -o LogLevel=ERROR
-  -o StrictHostKeyChecking=no
-  -o UserKnownHostsFile=/dev/null
-  -o GlobalKnownHostsFile=/dev/null
+SSH_TUN_OPTS=(
+-i "$SERVER_TO_CLIENT_KEY"
+-p "$REVERSE_PORT"
+-o IdentitiesOnly=yes
+-o BatchMode=yes
+-o StrictHostKeyChecking=no
+-o UserKnownHostsFile=/dev/null
 )
 
-# 1) Ouvrir le reverse tunnel (background)
-log "Opening reverse tunnel on port $REVERSE_PORT"
-ssh "${SSH_OPTS[@]}" -N -R "127.0.0.1:${REVERSE_PORT}:localhost:22" "${SERVER_USER}@${SERVER_HOST}" &
+# 1) pull fichier chiffr   client -> stockage temporaire
+ssh "${SSH_TUN_OPTS[@]}" borghelper@localhost "pullkey $CLIENT $LOCAL_USER" > "$ENC_LOCAL"
+test -s "$ENC_LOCAL" || { echo "pullkey returned empty data" >&2; exit 2; }
+chmod 600 "$ENC_LOCAL"
 
-TUNNEL_PID=$!
+# 2) d  chiffre vers dosssier temp
+gpg --batch --yes --pinentry-mode loopback \
+--passphrase-file "$SERVER_GPG_PASSFILE" \
+-o "$PLAIN_LOCAL" -d "$ENC_LOCAL"
+test -s "$PLAIN_LOCAL" || { echo "gpg produced empty keyfile" >&2; exit 3; }
+chmod 600 "$PLAIN_LOCAL"
 
-sleep 0.2
-kill -0 "$TUNNEL_PID" 2>/dev/null || { echo "Tunnel died immediately" >&2; exit 1; }
+# 3) Push le keyfile clair vers le client
+cat "$PLAIN_LOCAL" | ssh "${SSH_TUN_OPTS[@]}" borghelper@localhost "pushkey $CLIENT $LOCAL_USER"
 
-# 2) Demander au serveur de déclencher le decrypt via tunnel
-log "Calling preparedecrypt on server"
-ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" \
-  "sudo /usr/local/sbin/preparedecrypt.sh ${CLIENT} ${REVERSE_PORT} ${LOCAL_USER}"
+# 4) Nettoyage des cl  s c  t   server
+rm -f "$PLAIN_LOCAL"
+rm -f "$ENC_LOCAL"
 
-# 3) Faire le backup Borg (côté client)
-log "Starting borg backup"
-export BORG_RSH="ssh -p $SERVER_SSH_PORT -i $CLIENT_SSH_KEY -o IdentitiesOnly=yes -o BatchMode=yes"
-borg create --compression zstd,6 --stats --list --json \
-  "${REPO}::$(date +%F_%H-%M-%S)" \
-  "--patterns-from" \
-  "$PATTERN_FILE"
-
-# 4) Cleanup de la clé claire côté client (déclenché par le serveur via tunnel)
-log "Calling cleanup on server"
-ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" \
-  "sudo /usr/local/sbin/server_cleanup_key.sh ${CLIENT} ${REVERSE_PORT} ${LOCAL_USER}"
-
-echo "Backup OK"
-log "Backup finished successfully"
+echo "OK decrypt done"
