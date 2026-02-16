@@ -14,7 +14,7 @@ chown "${CLIENT}":"${API_USER}" "${KEY_CLEAR}"
 
 ARCHIVE="${2-}"
 if [ -z $ARCHIVE ]; then
-    sudo -u "${CLIENT}" borg list "${REPOSITORY_PATH}" 
+    sudo -u "${CLIENT}" borg list "${REPOSITORY_PATH}" --json
 else
     sudo -u "${CLIENT}" borg list "${REPOSITORY_PATH}"::"${ARCHIVE}" --json-lines
 fi
