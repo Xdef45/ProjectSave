@@ -247,9 +247,23 @@ impl Auth {
             Ok(o)=>o,
             Err(_)=>{println!("Erreur connexion ssh");return Err(APIError::Ssh)}
         };
-        let exit_status = output.status;
-        if exit_status.success(){
-            return Err(APIError::Script)
+        let stdout = match String::from_utf8(output.stdout.clone()){
+            Ok(out)=>out,
+            Err(_)=>{
+                println!("Erreur conversion stdout UTF8 decrypt_master_2_key_create");
+                return Err(APIError::UTF8)
+            }
+        };
+        let stderr = match String::from_utf8(output.stderr.clone()){
+            Ok(out)=>out,
+            Err(_)=>{
+                println!("Erreur conversion stderr UTF8 decrypt_master_2_key_create");
+                return Err(APIError::UTF8)
+            }
+        };
+        if output.status.success(){
+            println!("Erreur la vérification présence de la clé master key already existe decrypt_master_2_create_file : \nStdout: {}\nErreur: {}", stdout, stderr);
+            return Ok(())//Err(APIError::Script)
         }
 
         // Déchiffrement de la clé
