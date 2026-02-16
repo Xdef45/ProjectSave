@@ -9,7 +9,7 @@ struct SshKey{
 }
 
 
-#[post("send_ssh_key")]
+#[post("/send_ssh_key")]
 async fn send_ssh_key(req: HttpRequest, ssh_key: web::Json<SshKey>, auth: web::Data<Auth>)->HttpResponse{
     /* Extraction du cookie JWT */
     let Some(cookie) = req.cookie("Bearer") else{

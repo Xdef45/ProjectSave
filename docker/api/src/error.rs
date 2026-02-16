@@ -8,7 +8,11 @@ pub enum APIError{
     NoCookieBearer,
     NoAuthAppData,
     Script,
-    ConversionVecToString
+    ConversionVecToString,
+    Ssh,
+    Sftp,
+    Write,
+    UTF8
 
 }
 
@@ -21,7 +25,15 @@ impl error::ResponseError for APIError{
             APIError::NoCookieBearer=>"101",
             APIError::NoAuthAppData=>"102",
             APIError::Script=>"103",
-            APIError::ConversionVecToString=>"104"
+            APIError::ConversionVecToString=>"104",
+            APIError::Ssh=>"105",
+            APIError::Sftp=>"106",
+
+            // File
+            APIError::Write=>"200",
+
+            //Convertion
+            APIError::UTF8=>"300"
         };
         HttpResponse::BadRequest().body(response)
     }

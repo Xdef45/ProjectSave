@@ -1,3 +1,4 @@
+use actix_web::ResponseError;
 use sqlx::{mysql, MySqlPool};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
@@ -7,11 +8,10 @@ use argon2::{Argon2, Params};
 use std::env;
 use jsonwebtoken::errors::ErrorKind;
 use passcheck::PasswordChecker;
-use std::path::Path;
 use openssh::{Session, KnownHosts};
 use std::sync::Arc;
 use openssh_sftp_client::{Sftp, SftpOptions};
-use crate::borg_script::create_user;
+use crate::{borg_script::create_user, error::APIError};
 
 // argon2id paramètres
 const MEMORY_COST: u32 = 64*1024;
@@ -191,7 +191,7 @@ impl Auth {
         };
         /* Renvoyer le cookie JWT */
         let credentials = Credentials{exp: (get_current_timestamp() + EXPIRE_TIME), id:result[0].id.clone(), kdf:hex::encode(kdf_client)};
-        Auth::decrypt_master_2_key_create_file(result[0].encrypt_master_key_2.clone(), &credentials).await;
+        self.decrypt_master_2_key_create_file(result[0].encrypt_master_key_2.clone(), &credentials).await;
         /* Vérification du mot de passe */
         Ok(self.create_token(&credentials))
         
@@ -231,48 +231,53 @@ impl Auth {
         return username_for_encryption;
     }
 
-    pub async fn restore_master_key_2_file(&self, credentials: &Credentials){
+    pub async fn restore_master_key_2_file(&self, credentials: &Credentials)-> Result<(),APIError>{
         /* Récupération clé master 2 */
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
         let query = sqlx::query_as("SELECT id, encrypt_master_key_2 FROM Credentials WHERE id=?").bind(credentials.id.as_str());
         let result: Vec<MysqlCredentials> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
-        Auth::decrypt_master_2_key_create_file(result[0].encrypt_master_key_2.clone(), &credentials).await;
-
+        self.decrypt_master_2_key_create_file(result[0].encrypt_master_key_2.clone(), &credentials).await
     }
-    async fn decrypt_master_2_key_create_file(master2_key_encrypted: String, credentials: &Credentials){  
-        //  
+
+    async fn decrypt_master_2_key_create_file(&self, master2_key_encrypted: String, credentials: &Credentials)-> Result<(),APIError>{  
         let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY, credentials.id, credentials.id);
-        let path = Path::new(filename.as_str());
-        let is_exist = match tokio::fs::try_exists(path).await{
+
+        //Vérification de la présence de la clé
+        let output = match self.ssh_connexion.command("test").args(["-f", filename.as_str()]).output().await{
             Ok(o)=>o,
-            Err(e)=> {
-                println!("{}",e.to_string()); 
-                return}
+            Err(_)=>{println!("Erreur connexion ssh");return Err(APIError::Ssh)}
         };
-        if is_exist{
-            return
+        let exit_status = output.status;
+        if exit_status.success(){
+            return Err(APIError::Script)
         }
+
+        // Déchiffrement de la clé
         let master2_key_encrypted = hex::decode(master2_key_encrypted).expect("Convertion d'un string en bytes");
         let kdf_key_client = hex::decode(&credentials.kdf).expect("Convertion d'un string en bytes");
         let kdf_key = AesKey::new_decrypt(&kdf_key_client).expect("wrap kdf n'a pas focntionner");
         let mut master_key_2 = [0u8; 560];
         let _ = unwrap_key(&kdf_key, None, &mut master_key_2, &master2_key_encrypted).expect("msg");
-        let _ = tokio::fs::write(path, master_key_2).await;
-        return
+
+        // Création du fichier de la clé Borg
+        let mut key_borg = match self.sftp_connexion.create(&filename).await {
+            Ok(f)=>f,
+            Err(e)=>{
+            println!("Ouverture du fichier pour écrire la clé borg: {}", e.to_string());
+            return Err(APIError::Sftp);
+            }
+        };
+        match key_borg.write_all(&master_key_2).await{
+            Ok(_)=>return Ok(()),
+            Err(_)=> return Err(APIError::Write)
+        };
+        
     }
 
-    pub async fn delete_master_key_2_file(credentials: &Credentials){
+    pub async fn delete_master_key_2_file(&self, credentials: &Credentials){
         let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY, credentials.id, credentials.id);
-        let path = Path::new(filename.as_str());
-        let is_exist = match tokio::fs::try_exists(path).await{
-            Ok(o)=>o,
-            Err(e)=> {
-                println!("{}",e.to_string()); 
-                return}
-        };
-        if ! is_exist{
-            return
-        }     
+        let _ = self.ssh_connexion.command("rm").arg(filename).output()
+        .await.expect("Échoue suppression de la key_borg");
     }
 
     /* Vérifier token jwt */
