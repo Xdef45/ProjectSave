@@ -1,7 +1,7 @@
 use actix_web::{post, HttpResponse, HttpRequest, web, Result};
 use crate::authentification::auth::Auth;
 use crate::error::APIError;
-use crate::borg_script::list_archive::list_archive;
+use crate::borg_script::list_archive::{list_archive, Archives};
 
 
 #[post("/get_list")]
@@ -17,10 +17,16 @@ async fn get_list(req: HttpRequest, auth: web::Data<Auth>)->Result<HttpResponse,
     };
     match auth.restore_master_key_2_file(&credentials).await{
         Ok(_)=>{
-            list_archive(credentials.id, auth.ssh_connexion.clone()).await;
-            return Ok(HttpResponse::Ok().finish())
+            let archives = match list_archive(credentials.id, auth.ssh_connexion.clone()).await{
+                Ok(archives)=> return Ok(HttpResponse::Ok().json(archives)),
+                Err(e)=>{
+                    println!("Erreur list archive");
+                    return Err(e)}
+            };
         },
-        Err(e)=>return Err(e)
+        Err(e)=>{
+            println!("Erreur restore master key");
+            return Err(e)}
     };
     
 }
