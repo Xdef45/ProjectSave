@@ -7,7 +7,7 @@ use serde_json;
 mod error;
 mod route;
 mod borg_script;
-use crate::route::{signup, signin, get_repot_key, send_ssh_key, get_list, get_ssh_pub_key_server};
+use crate::route::{get_list, get_repot_key, get_ssh_pub_key_server, send_ssh_key, send_ssh_key_tunnel, signin, signup};
 
 #[post("/imaconnected")]
 async fn imaconnected(req: HttpRequest, auth: web::Data<Auth>) -> HttpResponse{
@@ -36,6 +36,7 @@ async fn main() -> std::io::Result<()> {
             .service(signin::signin)
             .service(imaconnected)
             .service(send_ssh_key::send_ssh_key)
+            .service(send_ssh_key_tunnel::send_ssh_key_tunnel)
             .service(get_repot_key::get_repot_key)
             .service(get_list::get_list)
             .service(get_ssh_pub_key_server::get_ssh_pub_key_server)
