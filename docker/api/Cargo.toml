@@ -1,0 +1,44 @@
+[package]
+name = "strongholer"
+edition = "2024"
+version = "0.0.1"
+
+[workspace]
+members = []
+
+[dependencies]
+actix-files = "0.6"
+actix-multipart = "0.7.2"
+argon2 = "0.5.3"
+bytes = "1.11.1"
+derive_more = "2.1.1"
+futures-core = "0.3.31"
+futures-util = "0.3.31"
+hex = "0.4"
+openssh = { version = "0.11.6", features = ["native-mux"] }
+openssh-sftp-client = { version = "0.15.4", features = ["openssh"] }
+passcheck = "0.2.0"
+serde = "1.0.228"
+serde_json = "1.0.149"
+tokio = { version = "1.49.0", features = ["fs", "io-util", "macros", "process", "rt-multi-thread"] }
+trpl = "0.3.0"
+
+[dependencies.actix-web]
+version = "=4.12.1"
+features = ["cookies"]
+
+[dependencies.jsonwebtoken]
+version = "10.2.0"
+features = ["aws_lc_rs"]
+
+[dependencies.openssl]
+version = "0.10"
+features = ["vendored"]
+
+[dependencies.sqlx]
+version = "0.8.6"
+features = ["runtime-async-std", "mysql"]
+
+[dependencies.uuid]
+version = "1.19.0"
+features = ["v4"]
