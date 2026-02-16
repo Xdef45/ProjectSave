@@ -73,30 +73,5 @@ pub async fn create_user(uuid:&String, ssh_connexion: Arc<Session>, sftp_connexi
         println!("Erreur lors de la convertion byte to string create_user");
         return Err(APIError::UTF8)
     };
-
-    // Supression de la clé borg
-    let Ok(output) = ssh_connexion.command("rm").arg(path_key).output().await else{
-        println!("Erreur lors de la connexion ssh pour supression de la clé creat_user");
-        return Err(APIError::Ssh)
-    };
-    let stdout = match String::from_utf8(output.stdout.clone()){
-        Ok(out)=>out,
-        Err(_)=>{
-            println!("Erreur conversion stdout UTF8 create_user");
-            return Err(APIError::UTF8)
-        }
-    };
-    let stderr = match String::from_utf8(output.stderr.clone()){
-        Ok(out)=>out,
-        Err(_)=>{
-            println!("Erreur conversion stderr UTF8 create_user");
-            return Err(APIError::UTF8)
-        }
-    };
-    if ! output.status.success(){
-        println!("Erreur lors de la supression de la clé create_user\nstdout {}\n stderr: {}", &stdout, &stderr);
-        return Err(APIError::Script)
-    }
-
     return Ok(master_key)
 }

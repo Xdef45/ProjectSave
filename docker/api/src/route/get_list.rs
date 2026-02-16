@@ -1,7 +1,7 @@
 use actix_web::{post, HttpResponse, HttpRequest, web, Result, FromRequest};
 use crate::authentification::auth::Auth;
 use crate::error::APIError;
-use crate::borg_script::list_archive::{list_archive, Archives};
+use crate::borg_script::list_archive::{Archives, ArchiveFile, list_archive, list_archive_content};
 use serde::Deserialize;
 use serde_json;
 
@@ -25,8 +25,13 @@ async fn get_list(req: HttpRequest, auth: web::Data<Auth>, body: String)->Result
 
     match auth.restore_master_key_2_file(&credentials).await{
         Ok(_)=>{
-            let archive_script = if body.len() == 0{
-                list_archive(credentials.id, auth.ssh_connexion.clone(), None).await
+            if body.len() == 0{
+                match list_archive(&credentials.id, auth.ssh_connexion.clone()).await{
+                    Ok(archives)=> return Ok(HttpResponse::Ok().json(archives)),
+                    Err(e)=>{
+                        println!("Erreur list archive");
+                        return Err(e)}
+                };
             }else{
                 let archive: Archive = match serde_json::from_str(body.as_str()){
                     Ok(o)=>o,
@@ -35,17 +40,15 @@ async fn get_list(req: HttpRequest, auth: web::Data<Auth>, body: String)->Result
                         return Err(APIError::Json)
                     }
                 };
-                list_archive(credentials.id, auth.ssh_connexion.clone(), Some(archive.archive_name)).await
+                match list_archive_content(&credentials.id, auth.ssh_connexion.clone(), archive.archive_name).await{
+                    Ok(archive_files)=> return Ok(HttpResponse::Ok().json(archive_files)),
+                    Err(e)=>return Err(e)
+                };
             };
-            match archive_script{
-                Ok(archives)=> return Ok(HttpResponse::Ok().json(archives)),
-                Err(e)=>{
-                    println!("Erreur list archive");
-                    return Err(e)}
-            };
+            
         },
         Err(e)=>{
-            println!("Erreur restore master key");
+            println!("Erreur restore master key get_list");
             return Err(e)}
     };
     

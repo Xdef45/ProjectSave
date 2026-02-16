@@ -141,6 +141,12 @@ impl Auth {
             Err(e)=>return Err(e)
         };
 
+        // Supression de la clé
+        let _ = match self.delete_master_key_2_file(&uuid).await{
+            Ok(_)=>(),
+            Err(e)=>return Err(e)
+        };
+
         /* Ajout de l'utilisateur dans la base de données */
         let query = sqlx::query("INSERT INTO Credentials (id , username, encrypt_master_key_2) VALUES(?,?,?)")
         .bind(&uuid)
@@ -305,8 +311,8 @@ impl Auth {
         Ok(master_key_2)
     }
 
-    pub async fn delete_master_key_2_file(&self, credentials: &Credentials)->Result<(), APIError>{
-        let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY, credentials.id, credentials.id);
+    pub async fn delete_master_key_2_file(&self, uuid: &String)->Result<(), APIError>{
+        let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY, uuid, uuid);
         let output = match self.ssh_connexion.command("rm").arg(filename).output().await{
             Ok(o)=>o,
             Err(_)=>{
