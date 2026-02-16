@@ -51,7 +51,7 @@ pub struct ArchiveFile{
     r#type: String,
     path: String,
     mtime: String,
-    Size:u64
+    size:u64
 }
 
 
