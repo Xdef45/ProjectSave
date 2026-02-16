@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -x
+set -x
 set -euo pipefail
 
 log() {
@@ -11,16 +11,15 @@ CLIENT="${1:?Usage: $0 CLIENT /path/to/save}"
 PATTERN_FILE="${2:?Usage: $0 CLIENT /path/to/save PATTERN_FILE}"
 LOCAL_USER="$(id -un)"
 
-LOG_FILE="logs/$(date +%F_%H-%M-%S)_${CLIENT}.log"
+LOG_DIRECTORY="$HOME/.config/borg/logs"
+LOG_FILE="${LOG_DIRECTORY}/$(date +%F_%H-%M-%S)_${CLIENT}.log"
 
-if [ ! -d logs ]; then
-mkdir logs
+if [ ! -d $LOG_DIRECTORY ]; then
+mkdir $LOG_DIRECTORY
 fi
 
-exec > >(tee -a "$LOG_FILE") 2>&1
-
 SERVER_HOST="saveserver"
-SERVER_SSH_PORT=2222 # ça va changer
+SERVER_SSH_PORT=1023 # ça va changer
 
 # User serveur qui héberge le repo + accepte le reverse tunnel
 # (selon ton modèle: tunnel@server ou borg_<client>@server)
@@ -47,6 +46,7 @@ REVERSE_PORT="$(
     -p $SERVER_SSH_PORT \
     -o IdentitiesOnly=yes \
     -o BatchMode=yes \
+    -o StrictHostKeyChecking=no \
     tunnel@saveserver \
     "sudo /usr/local/sbin/alloc_reverse_port.sh '${CLIENT}'"
 )"
@@ -91,12 +91,17 @@ ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" \
 
 # 3) Faire le backup Borg (côté client)
 log "Starting borg backup"
+
 export BORG_RSH="ssh -p $SERVER_SSH_PORT -i $CLIENT_SSH_KEY -o IdentitiesOnly=yes -o BatchMode=yes"
+{
 borg create --compression zstd,6 --stats --list --json \
   "${REPO}::$(date +%F_%H-%M-%S)" \
   "--patterns-from" \
   "$PATTERN_FILE"
-
+} >> "$LOG_FILE" 2>&1
+borg create --compression zstd,6 \
+  "${REPO}::$(date +%F_%H-%M-%S)_logs" \
+  $LOG_FILE
 # 4) Cleanup de la clé claire côté client (déclenché par le serveur via tunnel)
 log "Calling cleanup on server"
 ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" \
