@@ -2,8 +2,6 @@
 set -euo pipefail
 set -x
 
-# [ "$(id -u)" -eq 0 ] || { echo "Run as root"; exit 1; }
-
 CLIENT_USER="${1:?Usage: $0 USER CLIENT_ID}"            # l’utilisateur qui lance borg (subject to change lol)
 CLIENT_ID="${2:?Usage: $USER CLIENT_ID}"
 BORGHELPER_USER="borghelper"
@@ -21,15 +19,6 @@ SSH_DIR="${USER_HOME}/.ssh"
 TUNNEL_KEY="${SSH_DIR}/borg_${CLIENT_ID}_tunnel_key"
 BORG_KEY="${SSH_DIR}/borg_${CLIENT_ID}_key"
 
-# echo "[prepclient] Install all local .sh scripts to /usr/local/sbin"
-
-# SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# for f in "${SCRIPT_DIR}"/*.sh; do
-#   [ -e "$f" ] || continue
-#   install -m 0755 -o root -g root "$f" "/usr/local/sbin/$(basename "$f")"
-# done
-
 # Dossiers client (doivent exister avant les backups)
 BORG_KEYS_DIR="${USER_HOME}/.config/borg/keys"
 LOCAL_SSH_DIR="${USER_HOME}/.ssh"
@@ -40,7 +29,7 @@ echo "[prepclient] Installing required packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get install -y --no-install-recommends \
-  borgbackup gpg openssh-client ca-certificates
+  borgbackup gpg openssh-server ca-certificates
 
 echo "[prepclient] Ensure borg keys dir exists" 
 install -d -m 0700 -o "${CLIENT_USER}" -g "${CLIENT_USER}" "${BORG_KEYS_DIR}"
