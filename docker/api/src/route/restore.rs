@@ -15,12 +15,12 @@ struct Restore{
 async fn get_restore(req: HttpRequest, auth: web::Data<Auth>, archive: web::Json<Restore>)-> Result<HttpResponse, APIError>{
     /* Extraction du cookie JWT */
     let Some(cookie) = req.cookie("Bearer") else{
-        return Ok(HttpResponse::Ok().body("Pas de cookie Bearer"))
+        return Err(APIError::NoCookieBearer)
     };
 
-    let (_, (_, credentials)) = auth.validation(cookie.value().to_string());
-    let Some(credentials) = credentials else {
-        return Ok(HttpResponse::Ok().body("Pas de credentials"))
+    let (_, (_, credentials)) = match auth.validation(cookie.value().to_string()){
+        Ok(res)=> res,
+        Err(e)=>return Err(e)
     };
     let restore_file = match restore(credentials.id, archive.archive_name.clone(), auth.ssh_connexion.clone(), auth.sftp_connexion.clone()).await{
         Ok(f)=>f,

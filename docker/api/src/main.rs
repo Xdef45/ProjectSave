@@ -3,6 +3,7 @@ use actix_web::{HttpRequest, HttpResponse, post,web, App, HttpServer};
 mod authentification;
 use crate::authentification::auth::Auth;
 use crate::authentification::middleware_auth;
+use crate::error::APIError;
 use serde_json;
 mod error;
 mod route;
@@ -11,15 +12,20 @@ mod stream_http;
 use crate::route::{get_list, get_repot_key, get_ssh_pub_key_server, send_ssh_key, send_ssh_key_tunnel, signin, signup, restore};
 
 #[post("/imaconnected")]
-async fn imaconnected(req: HttpRequest, auth: web::Data<Auth>) -> HttpResponse{
-    if let Some(cookie) = req.cookie("Bearer"){
-        let (_, (_, credentials)) = auth.validation(cookie.value().to_string());
-        return HttpResponse::Ok()
-        .content_type("application/json")
-        .body(serde_json::to_string(&credentials).expect("Convertion de struct à string a échoué"))
-    }else{
-        return HttpResponse::BadRequest().body("Vous n'avez pas de cookie de connection")
-    }
+async fn imaconnected(req: HttpRequest, auth: web::Data<Auth>) -> Result<HttpResponse, APIError>{
+    /* Extraction du cookie JWT */
+    let Some(cookie) = req.cookie("Bearer") else{
+        return Err(APIError::NoCookieBearer)
+    };
+
+    let (_, (_, credentials)) = match auth.validation(cookie.value().to_string()){
+        Ok(res)=> res,
+        Err(e)=>return Err(e)
+    };
+    let Ok(credentials_json) = serde_json::to_string(&credentials)else{
+        return Err(APIError::Json)
+    };
+    return Ok(HttpResponse::Ok().content_type("application/json").body(credentials_json))
 }
 
 #[actix_web::main]

@@ -18,26 +18,26 @@ async fn get_list(req: HttpRequest, auth: web::Data<Auth>, body: String)->Result
         return Err(APIError::NoCookieBearer)
     };
 
-    let (_, (_, credentials)) = auth.validation(cookie.value().to_string());
-    let Some(credentials) = credentials else {
-        return Err(APIError::NoAuthAppData)
-    };
-    let archive: Archive = match serde_json::from_str(body.as_str()){
-        Ok(o)=>o,
-        Err(_)=>{
-            println!("Erreur lors de la conversion en json dans get_list");
-            return Err(APIError::Json)
-        }
+    let (_, (_, credentials)) = match auth.validation(cookie.value().to_string()){
+        Ok(res)=> res,
+        Err(e)=>return Err(e)
     };
 
     match auth.restore_master_key_2_file(&credentials).await{
         Ok(_)=>{
-            let archive_script = if archive.archive_name.len() == 0{
+            let archive_script = if body.len() == 0{
                 list_archive(credentials.id, auth.ssh_connexion.clone(), None).await
             }else{
+                let archive: Archive = match serde_json::from_str(body.as_str()){
+                    Ok(o)=>o,
+                    Err(_)=>{
+                        println!("Erreur lors de la conversion en json dans get_list");
+                        return Err(APIError::Json)
+                    }
+                };
                 list_archive(credentials.id, auth.ssh_connexion.clone(), Some(archive.archive_name)).await
             };
-            let archives = match archive_script{
+            match archive_script{
                 Ok(archives)=> return Ok(HttpResponse::Ok().json(archives)),
                 Err(e)=>{
                     println!("Erreur list archive");
