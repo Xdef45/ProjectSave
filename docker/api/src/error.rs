@@ -2,9 +2,10 @@ use actix_web::{error,HttpResponse};
 use derive_more::derive::{Display, Error};
 
 
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Display, Error, PartialEq)]
 pub enum APIError{
     NoFile,
+    Metadata,
     NoCookieBearer,
     NoAuthAppData,
     Script,
@@ -12,14 +13,44 @@ pub enum APIError{
     Ssh,
     Sftp,
     Write,
-    UTF8
+
+    //Convertion
+    UTF8,
+    Json,
+    Usize,
+
+    //Logup
+    AlreadyExist,
+    InvalidPassword,
+    /// username inférieur à 5
+    UsernameTooShort,
+    /// Password length inférieur à 12
+    PasswordTooShort,
+    /// Pas de caractère spécial
+    SpecialCharMissing,
+    /// Pas de majuscule
+    MajusculeMissing,
+    /// Pas de chiffre
+    NumberMissing,
+
+    //Login
+    NotSignup,
+    KDFError,
+
+    //Bearer
+    /// Token à expiré
+    Expired,
+    EncodeToken,
+    ErrorBearer
+
 
 }
 
 impl error::ResponseError for APIError{
     fn error_response(&self)->HttpResponse{
         let response = match *self{
-            APIError::NoFile=>"1",
+            APIError::NoFile=>"600",
+            APIError::Metadata=>"601",
 
             // Cas Généraux
             APIError::NoCookieBearer=>"101",
@@ -33,7 +64,30 @@ impl error::ResponseError for APIError{
             APIError::Write=>"200",
 
             //Convertion
-            APIError::UTF8=>"300"
+            APIError::UTF8=>"300",
+            APIError::Json=>"301",
+            APIError::Usize=>"302",
+
+            //Logup
+            APIError::AlreadyExist=>"1",
+            APIError::UsernameTooShort=>"2",
+            APIError::InvalidPassword=>"3",
+            APIError::PasswordTooShort=>"4",
+            APIError::SpecialCharMissing=>"5",
+            APIError::MajusculeMissing=>"6",
+            APIError::NumberMissing=>"7",
+
+            // Login
+            APIError::NotSignup=>"0",
+
+            //Bearer
+            APIError::Expired=>"503",
+            APIError::ErrorBearer=>"504",
+
+            // token
+            APIError::EncodeToken=>"700",
+            //Encryption
+            APIError::KDFError =>"400"
         };
         HttpResponse::BadRequest().body(response)
     }
