@@ -3,7 +3,7 @@ use crate::authentification::auth::Auth;
 use crate::error::APIError;
 use crate::borg_script::list_archive::{list_archive, Archives};
 use serde::Deserialize;
-use use serde_json;
+use serde_json;
 
 #[derive(Deserialize)]
 struct Archive{
@@ -22,18 +22,22 @@ async fn get_list(req: HttpRequest, auth: web::Data<Auth>, body: String)->Result
     let Some(credentials) = credentials else {
         return Err(APIError::NoAuthAppData)
     };
-
-    let archive: Archive = match serde_json::from_str(body){
+    let archive: Archive = match serde_json::from_str(body.as_str()){
         Ok(o)=>o,
         Err(_)=>{
             println!("Erreur lors de la conversion en json dans get_list");
-            return APIError::Json
+            return Err(APIError::Json)
         }
     };
 
     match auth.restore_master_key_2_file(&credentials).await{
         Ok(_)=>{
-            let archives = match list_archive(credentials.id, auth.ssh_connexion.clone()).await{
+            let archive_script = if archive.archive_name.len() == 0{
+                list_archive(credentials.id, auth.ssh_connexion.clone(), None).await
+            }else{
+                list_archive(credentials.id, auth.ssh_connexion.clone(), Some(archive.archive_name)).await
+            };
+            let archives = match archive_script{
                 Ok(archives)=> return Ok(HttpResponse::Ok().json(archives)),
                 Err(e)=>{
                     println!("Erreur list archive");

@@ -7,6 +7,7 @@ use serde_json;
 mod error;
 mod route;
 mod borg_script;
+mod stream_http;
 use crate::route::{get_list, get_repot_key, get_ssh_pub_key_server, send_ssh_key, send_ssh_key_tunnel, signin, signup, restore};
 
 #[post("/imaconnected")]

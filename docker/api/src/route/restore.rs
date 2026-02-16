@@ -14,7 +14,6 @@ struct Restore{
 #[post("/get_restore")]
 async fn get_restore(req: HttpRequest, auth: web::Data<Auth>, archive: web::Json<Restore>)-> Result<HttpResponse, APIError>{
     /* Extraction du cookie JWT */
-    let archive_json = req.b
     let Some(cookie) = req.cookie("Bearer") else{
         return Ok(HttpResponse::Ok().body("Pas de cookie Bearer"))
     };

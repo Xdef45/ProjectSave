@@ -15,7 +15,11 @@ pub struct Archives{
 }
 
 pub async fn list_archive(uuid: String, ssh_connexion: Arc<Session>, archive_name:Option<String>)->Result<Archives, APIError>{
-    let output = match ssh_connexion.command("sudo").args(["/usr/local/sbin/list.sh", uuid.as_str()]).output().await{
+    let output = match archive_name {
+        Some(archive)=>ssh_connexion.command("sudo").args([String::from("/usr/local/sbin/list.sh"), uuid, archive]).output().await,
+        None=>ssh_connexion.command("sudo").args([String::from("/usr/local/sbin/list.sh"), uuid]).output().await
+    };
+    let output = match output{
         Ok(o)=>o,
         Err(_)=>{println!("connexion ssh erreur");return Err(APIError::Ssh)}
     };
