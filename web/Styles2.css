@@ -122,3 +122,28 @@ footer {
     font-size: 14px;
     color: white;
 }
+
+.download-btn {
+  display: inline-block;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #7952a3, #2575fc);
+  color: #fff;
+  border-radius: 25px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(106, 17, 203, 0.3);
+  font-size: 16px;
+  
+}
+
+.download-btn:hover {
+  opacity: 0.9;
+  box-shadow: 0 6px 20px rgba(106, 17, 203, 0.5);
+  transform: translateY(-2px);
+}
+
+.download-btn:active {
+  transform: translateY(0);
+}

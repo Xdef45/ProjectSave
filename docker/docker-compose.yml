@@ -54,6 +54,7 @@ services:
       - ./credentials/nginx/privatekey.pem:/etc/nginx/certs/privatekey.pem
       - /var/log/nginx:/var/log/nginx
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./../web:/etc/nginx/html
     depends_on:
       - api
     restart: unless-stopped
