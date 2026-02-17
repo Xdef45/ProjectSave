@@ -22,6 +22,10 @@ async fn get_restore(req: HttpRequest, auth: web::Data<Auth>, archive: web::Json
         Ok(res)=> res,
         Err(e)=>return Err(e)
     };
+    let _ = match auth.restore_master_key_2_file(&credentials).await{
+        Ok(_)=>(),
+        Err(e)=>return Err(e)
+    };
     let restore_file = match restore(credentials.id, archive.archive_name.clone(), auth.ssh_connexion.clone(), auth.sftp_connexion.clone()).await{
         Ok(f)=>f,
         Err(a)=>{

@@ -23,33 +23,30 @@ async fn get_list(req: HttpRequest, auth: web::Data<Auth>, body: String)->Result
         Err(e)=>return Err(e)
     };
 
-    match auth.restore_master_key_2_file(&credentials).await{
-        Ok(_)=>{
-            if body.len() == 0{
-                match list_archive(&credentials.id, auth.ssh_connexion.clone()).await{
-                    Ok(archives)=> return Ok(HttpResponse::Ok().json(archives)),
-                    Err(e)=>{
-                        println!("Erreur list archive");
-                        return Err(e)}
-                };
-            }else{
-                let archive: Archive = match serde_json::from_str(body.as_str()){
-                    Ok(o)=>o,
-                    Err(_)=>{
-                        println!("Erreur lors de la conversion en json dans get_list");
-                        return Err(APIError::Json)
-                    }
-                };
-                match list_archive_content(&credentials.id, auth.ssh_connexion.clone(), archive.archive_name).await{
-                    Ok(archive_files)=> return Ok(HttpResponse::Ok().json(archive_files)),
-                    Err(e)=>return Err(e)
-                };
-            };
-            
-        },
-        Err(e)=>{
-            println!("Erreur restore master key get_list");
-            return Err(e)}
+    let _ = match auth.restore_master_key_2_file(&credentials).await{
+        Ok(_)=>(),
+        Err(e)=>return Err(e)
     };
+    if body.len() == 0{
+        match list_archive(&credentials.id, auth.ssh_connexion.clone()).await{
+            Ok(archives)=> return Ok(HttpResponse::Ok().json(archives)),
+            Err(e)=>{
+                println!("Erreur list archive");
+                return Err(e)}
+        };
+    }else{
+        let archive: Archive = match serde_json::from_str(body.as_str()){
+            Ok(o)=>o,
+            Err(_)=>{
+                println!("Erreur lors de la conversion en json dans get_list");
+                return Err(APIError::Json)
+            }
+        };
+        match list_archive_content(&credentials.id, auth.ssh_connexion.clone(), archive.archive_name).await{
+            Ok(archive_files)=> return Ok(HttpResponse::Ok().json(archive_files)),
+            Err(e)=>return Err(e)
+        };
+    };
+            
     
 }
