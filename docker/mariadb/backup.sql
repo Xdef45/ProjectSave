@@ -26,9 +26,11 @@ DROP TABLE IF EXISTS `Credentials`;
 CREATE TABLE `Credentials` (
   `id` varchar(32) NOT NULL,
   `username` varchar(255) NOT NULL,
-  `encrypt_master_key_2` varchar(1136) NOT NULL,
+  `encrypt_master_key_1` varchar(1200) NOT NULL,
+  `encrypt_master_key_2` varchar(1200) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `encrypt_master_key_1` (`encrypt_master_key_1`),
   UNIQUE KEY `encrypt_master_key_2` (`encrypt_master_key_2`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

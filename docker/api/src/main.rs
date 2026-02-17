@@ -9,7 +9,7 @@ mod error;
 mod route;
 mod borg_script;
 mod stream_http;
-use crate::route::{get_list, get_repot_key, get_ssh_pub_key_server, send_ssh_key, send_ssh_key_tunnel, signin, signup, restore};
+use crate::route::{get_list, get_repot_key, get_ssh_pub_key_server, send_ssh_key, send_ssh_key_tunnel, signin, signup, restore, get_log};
 
 #[post("/imaconnected")]
 async fn imaconnected(req: HttpRequest) -> Result<HttpResponse, APIError>{
@@ -45,6 +45,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_list::get_list)
             .service(get_ssh_pub_key_server::get_ssh_pub_key_server)
             .service(restore::get_restore)
+            .service(get_log::get_log)
         )
     })
     .bind(("0.0.0.0", 8080)).expect("exit notime to play")
