@@ -4,3 +4,4 @@ pub mod list_archive;
 pub mod ssh_pub_key_server;
 pub mod restore;
 pub mod install_client_tunnel_key;
+pub mod log;
