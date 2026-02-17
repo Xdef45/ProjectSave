@@ -27,7 +27,7 @@ CREATE TABLE `Credentials` (
   `id` varchar(32) NOT NULL,
   `username` varchar(255) NOT NULL,
   `encrypt_master_key_1` varchar(1200) NOT NULL,
-  `encrypt_master_key_2` varchar(1136) NOT NULL,
+  `encrypt_master_key_2` varchar(1200) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `encrypt_master_key_1` (`encrypt_master_key_1`),
