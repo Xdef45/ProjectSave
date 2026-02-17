@@ -1,5 +1,5 @@
 use actix_web::{post,web, cookie::Cookie,HttpResponse};
-use crate::authentification::auth::{Auth, Login,LogupState};
+use crate::authentification::auth::{Auth, Login};
 use crate::error::APIError;
 
 /*S'incrire */

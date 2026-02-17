@@ -1,4 +1,4 @@
-use actix_web::{error,HttpResponse};
+use actix_web::{error,HttpResponse, cookie::{time::Duration,Cookie}};
 use derive_more::derive::{Display, Error};
 
 
@@ -9,7 +9,6 @@ pub enum APIError{
     NoCookieBearer,
     NoAuthAppData,
     Script,
-    ConversionVecToString,
     Ssh,
     Sftp,
     Write,
@@ -56,9 +55,8 @@ impl error::ResponseError for APIError{
             APIError::NoCookieBearer=>"101",
             APIError::NoAuthAppData=>"102",
             APIError::Script=>"103",
-            APIError::ConversionVecToString=>"104",
-            APIError::Ssh=>"105",
-            APIError::Sftp=>"106",
+            APIError::Ssh=>"104",
+            APIError::Sftp=>"105",
 
             // File
             APIError::Write=>"200",
@@ -81,7 +79,17 @@ impl error::ResponseError for APIError{
             APIError::NotSignup=>"0",
 
             //Bearer
-            APIError::Expired=>"503",
+            APIError::Expired=>{
+                let cookie = Cookie::build("Bearer", "")
+                .path("/")
+                .secure(true)
+                .max_age(Duration::milliseconds(0))
+                .http_only(true)
+                .finish();
+                return HttpResponse::Ok()
+                .cookie(cookie)
+                .body("503")
+            },
             APIError::ErrorBearer=>"504",
 
             // token
