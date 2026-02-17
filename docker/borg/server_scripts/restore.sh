@@ -20,7 +20,7 @@ if [ ! -f $KEY_CLEAR ]; then
     exit 1
 fi
 
-chmod 644 "${KEY_CLEAR}"
+chmod 770 "${KEY_CLEAR}"
 chown ${CLIENT}:"${API_USER}" "${KEY_CLEAR}"
 
 if [ -z $TARGET ]; then
