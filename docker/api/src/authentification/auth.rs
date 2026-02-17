@@ -339,9 +339,9 @@ impl Auth {
     }
     
 
-    pub async fn delete_master_key_2_file(&self, uuid: &String)->Result<(), APIError>{
+    pub async fn delete_master_key_file(&self, uuid: &String)->Result<(), APIError>{
         let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY, uuid, uuid);
-        let output = match self.ssh_connexion.command("rm").arg(filename).output().await{
+        let output = match self.ssh_connexion.command("shred").args(["-u", &filename]).output().await{
             Ok(o)=>o,
             Err(_)=>{
                 println!("Erreur connexion ssh supression clé borg delete_master_key_2_file");
