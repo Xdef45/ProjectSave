@@ -55,14 +55,6 @@ impl StreamBuffer2 {
             chunk_size: 16 * 1024,
         }
     }
-
-    pub fn with_chunk_size(reader: Vec<u8>, chunk_size: usize)->Self{
-        Self {
-            data: reader,
-            offset: 0,
-            chunk_size: chunk_size.max(1),
-        }
-    }
 }
 
 impl Stream for StreamBuffer2

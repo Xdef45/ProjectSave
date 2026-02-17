@@ -31,7 +31,7 @@ async fn get_list(req: HttpRequest, auth: web::Data<Auth>, body: String)->Result
                 return Err(APIError::Json)
             }
         };
-        let archive_files = list_archive_content(&credentials.id, auth.ssh_connexion.clone(), archive.archive_name).await?;
+        let archive_files = list_archive_content(&credentials.id, auth.ssh_connexion.clone(), &archive.archive_name).await?;
         return Ok(HttpResponse::Ok().json(archive_files))
     };
             
