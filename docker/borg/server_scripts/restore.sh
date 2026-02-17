@@ -35,6 +35,5 @@ fi
 chown "${API_USER}":"${API_USER}" "${RESTORE_PATH}"/*
 chmod 700 "${RESTORE_PATH}"/*
 
-shred -u "${KEY_CLEAR}""
 
 # option pour restore un fichier seul

@@ -23,5 +23,3 @@ if [ -z $ARCHIVE ]; then
 else
     sudo -u "${CLIENT}" borg list "${REPOSITORY_PATH}"::"${ARCHIVE}" --json-lines
 fi
-
-shred -u "${KEY_CLEAR}"
