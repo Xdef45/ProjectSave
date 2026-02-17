@@ -1,8 +1,13 @@
+use openssl::kdf;
 use sqlx::{mysql, MySqlPool};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use openssl::aes::{AesKey, unwrap_key, wrap_key};
+use aes_gcm::{
+    aead::{Aead, AeadCore, KeyInit, OsRng},
+    Aes256Gcm, Nonce, Key // Or `Aes128Gcm`
+};
 use argon2::{Argon2, Params};
 use std::env;
 use jsonwebtoken::errors::ErrorKind;
@@ -126,7 +131,7 @@ impl Auth {
             println!("Erreur longueur de clé borg 1 encrypted signup: {}", key_1_encrypted.len());
             return Err(APIError::KDFError)
         }
-        if key_2_encrypted.len()>1136{
+        if key_2_encrypted.len()>1200{
             println!("Erreur longueur de clé borg 1 encrypted signup : {}", key_2_encrypted.len());
             return Err(APIError::KDFError)
         }
@@ -149,33 +154,40 @@ impl Auth {
 
     pub fn encrypt_key_1(&self, kdf_client:&[u8], master_key: Vec<u8>) -> Result<String, APIError>{
         /*Chiffrement clé_master_2 */
-        let len_key_multiple_8 = master_key.len() + (8-(master_key.len()%8));
-        let kdf_key = AesKey::new_encrypt(&kdf_client).expect("wrap kdf n'a pas focntionner");
-        let mut key_in = vec![0u8; len_key_multiple_8];
-        key_in[..master_key.len()].copy_from_slice(&master_key);
-        let mut master_key_1_encrypted = vec![0u8; len_key_multiple_8+8];
-        let Ok(_)= wrap_key(&kdf_key, None, &mut master_key_1_encrypted, &key_in)else{
-            println!("Erreur lors de la création de la clé KDF");
-            return Err(APIError::KDFError)
-            
+
+        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&kdf_client));
+        
+        let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+        match cipher.encrypt(&nonce,master_key.as_ref()){
+            Ok(o)=>{
+                let mut encrypted_with_nonce = Vec::with_capacity(nonce.len() + o.len());
+                encrypted_with_nonce.extend_from_slice(nonce.as_slice());
+                encrypted_with_nonce.extend_from_slice(&o);
+                return Ok(hex::encode(encrypted_with_nonce))
+            },
+            Err(e)=>{
+                println!("Erreur lors de la création de la clé KDF: {}", e.to_string());
+                return Err(APIError::KDFError)
+            }
         };
-        /* enregistrer sur un format hexadécimal */
-        return Ok(hex::encode(&master_key_1_encrypted));
     }
 
     pub fn encrypt_key_2(&self, kdf_client:&[u8], master_key: String) -> Result<String, APIError>{
-        /*Chiffrement clé_master_2 */
-        let len_key_multiple_8 = master_key.len() + (8-(master_key.len()%8));
-        let kdf_key = AesKey::new_encrypt(&kdf_client).expect("wrap kdf n'a pas focntionner");
-        let mut key_in = vec![0u8; len_key_multiple_8];
-        key_in[..master_key.len()].copy_from_slice(master_key.as_bytes());
-        let mut master_key_2_encrypted = vec![0u8; len_key_multiple_8+8];
-        let Ok(_) = wrap_key(&kdf_key, None, &mut master_key_2_encrypted, &key_in)else{
-            println!("Erreur lors de la création de la clé KDF");
-            return Err(APIError::KDFError)
+        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&kdf_client));
+        
+          let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+        match cipher.encrypt(&nonce,master_key.as_ref()){
+            Ok(o)=>{
+                let mut encrypted_with_nonce = Vec::with_capacity(nonce.len() + o.len());
+                encrypted_with_nonce.extend_from_slice(nonce.as_slice());
+                encrypted_with_nonce.extend_from_slice(&o);
+                return Ok(hex::encode(encrypted_with_nonce))
+            },
+            Err(e)=>{
+                println!("Erreur lors de la création de la clé KDF: {}", e.to_string());
+                return Err(APIError::KDFError)
+            }
         };
-        /* enregistrer sur un format hexadécimal */
-        return Ok(hex::encode(&master_key_2_encrypted));
     }
 
     pub async fn signin(&self, login:Login) -> Result<String, APIError>{
@@ -298,20 +310,26 @@ impl Auth {
         }
         // Déchiffrement de la clé
         //(master_key.len() + (master_key.len()%8))+8
-        let master1_key_encrypted = hex::decode(result[0].encrypt_master_key_1.clone()).expect("Convertion d'un string en bytes");
-        if master1_key_encrypted.len() < 16 {
-            println!("Erreur taille clé master 1 chiffrée invalide");
-            return Err(APIError::KDFError)
-        }
-        let kdf_key_client = hex::decode(&credentials.kdf).expect("Convertion d'un string en bytes");
-        let kdf_key = AesKey::new_decrypt(&kdf_key_client).expect("wrap kdf n'a pas focntionner");
-        let mut master_key = vec![0u8; master1_key_encrypted.len() - 8];
-        let Ok(written) = unwrap_key(&kdf_key, None, &mut master_key, &master1_key_encrypted)else {
-            println!("Erreur déchiffrement de la clé master 2");
-            return Err(APIError::KDFError)
+        let master_key_encrypted= match hex::decode(&result[0].encrypt_master_key_1){
+            Ok(key)=> key,
+            Err(_)=>{
+                return Err(APIError::UTF8);
+            }
         };
-        master_key.truncate(written);
-        Ok(master_key)
+
+        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&hex::decode(&credentials.kdf).expect("msg")));
+        
+        let nonce_len = 12usize;
+        let (nonce_bytes, ciphertext) = master_key_encrypted.split_at(nonce_len);
+        let nonce = Nonce::from_slice(nonce_bytes);
+
+        match cipher.decrypt(nonce, ciphertext){
+            Ok(o)=>return Ok(o),
+            Err(e)=>{
+                println!("Erreur lors de la création de la clé KDF: {}", e.to_string());
+                return Err(APIError::KDFError)
+            }
+        };
     }
 
     async fn decrypt_master_2_key(&self, credentials: &Credentials)-> Result<Vec<u8>,APIError>{  
@@ -322,20 +340,25 @@ impl Auth {
         
 
         // Déchiffrement de la clé
-        let master2_key_encrypted = hex::decode(result[0].encrypt_master_key_2.clone()).expect("Convertion d'un string en bytes");
-        if master2_key_encrypted.len() < 16 {
-            println!("Erreur taille clé master 2 chiffrée invalide");
-            return Err(APIError::KDFError)
-        }
-        let kdf_key_client = hex::decode(&credentials.kdf).expect("Convertion d'un string en bytes");
-        let kdf_key = AesKey::new_decrypt(&kdf_key_client).expect("wrap kdf n'a pas focntionner");
-        let mut master_key = vec![0u8; master2_key_encrypted.len() - 8];
-        let Ok(written) = unwrap_key(&kdf_key, None, &mut master_key, &master2_key_encrypted)else {
-            println!("Erreur déchiffrement de la clé master 2");
-            return Err(APIError::KDFError)
+        let master_key_encrypted= match hex::decode(&result[0].encrypt_master_key_2){
+            Ok(key)=> key,
+            Err(_)=>{
+                return Err(APIError::UTF8);
+            }
         };
-        master_key.truncate(written);
-        Ok(master_key)
+      let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&hex::decode(&credentials.kdf).expect("msg")));
+        
+        let nonce_len = 12usize;
+        let (nonce_bytes, ciphertext) = master_key_encrypted.split_at(nonce_len);
+        let nonce = Nonce::from_slice(nonce_bytes);
+
+        match cipher.decrypt(nonce, ciphertext){
+            Ok(o)=>return Ok(o),
+            Err(e)=>{
+                println!("Erreur lors de la création de la clé KDF: {}", e.to_string());
+                return Err(APIError::KDFError)
+            }
+        };
     }
     
 
