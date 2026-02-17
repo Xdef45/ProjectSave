@@ -74,8 +74,7 @@ pub async fn get_master_key_1_encrypted(uuid:&String, ssh_connexion: Arc<Session
     let buf= bytes::BytesMut::with_capacity(master_key_len);
     let master_key_byte = master_key_file.read_all(master_key_len, buf).await.expect("read all échoué");
     // Supression de la clé borg
-    /* 
-    let output = match ssh_connexion.command("rm").arg(path_key).output().await{
+    let output = match ssh_connexion.command("shred").args(["-u", &path_key]).output().await{
         Ok(o)=>o,
         Err(_)=> {
             println!("Erreur command ssh rm key");
@@ -99,7 +98,7 @@ pub async fn get_master_key_1_encrypted(uuid:&String, ssh_connexion: Arc<Session
     if ! output.status.success(){
         println!("Erreur lors de la supressionde la clé borg\nstdout {}\n stderr: {}", &stdout, &stderr);
         return Err(APIError::Script)
-    }*/
+    }
     return Ok(master_key_byte.to_vec())
 }
 
@@ -144,7 +143,7 @@ pub async fn get_master_key_2(uuid:&String, ssh_connexion: Arc<Session>, sftp_co
         return Err(APIError::UTF8)
     };
     // Supression de la clé borg
-    let output = match ssh_connexion.command("rm").arg(path_key).output().await{
+    let output = match ssh_connexion.command("shred").args(["-u", &path_key]).output().await{
         Ok(o)=>o,
         Err(_)=> {
             println!("Erreur command ssh rm key");
