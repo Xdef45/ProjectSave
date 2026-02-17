@@ -21,11 +21,9 @@ if [ ! -d $LOG_DIRECTORY ]; then
 mkdir $LOG_DIRECTORY
 fi
 
-SERVER_HOST="saveserver"
-SERVER_SSH_PORT=1023 # ça va changer
+SERVER_HOST="strongholder.fr"
+SERVER_SSH_PORT=22
 
-# User serveur qui héberge le repo + accepte le reverse tunnel
-# (selon ton modèle: tunnel@server ou borg_<client>@server)
 SERVER_USER="tunnel"
 
 #Clé client -> serveur (reverse tunnel + commande remote)
@@ -42,7 +40,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# Port reverse choisi (idéalement unique par client, récupéré via API si tu veux)
+# reverse port unique par client
 log "Requesting reverse port from server"
 REVERSE_PORT="$(
   ssh -i $TUNNEL_SSH_KEY \
@@ -60,8 +58,7 @@ if [[ ! "$REVERSE_PORT" =~ ^[0-9]+$ ]]; then
   exit 1
 fi
 
-# Repo borg sur le serveur (exemple)
-# IMPORTANT: borg create tourne sur le client, et le serveur doit autoriser borg serve
+
 REPO="ssh://${CLIENT}@${SERVER_HOST}:${SERVER_SSH_PORT}/srv/repos/${CLIENT}/repo"
 
 # On ouvre le tunnel en background, puis on orchestre via SSH sur le serveur.
