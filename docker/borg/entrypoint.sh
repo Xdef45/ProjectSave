@@ -2,7 +2,7 @@
 
 cat /root/.ssh/id_ed25519.pub > /srv/repos/api/.ssh/authorized_keys 
 
-cat cat > /etc/ssh/sshd_config <<'EOF'
+cat > /etc/ssh/sshd_config <<'EOF'
 Include /etc/ssh/sshd_config.d/*.conf
 
 KbdInteractiveAuthentication no
