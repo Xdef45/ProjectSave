@@ -1,4 +1,4 @@
-use actix_web::{Error, HttpResponse, body::BoxBody, cookie::{Cookie, time::Duration}, dev::{ServiceRequest, ServiceResponse}, middleware::Next, web};
+use actix_web::{Error, HttpResponse, ResponseError, body::BoxBody, cookie::Cookie, dev::{ServiceRequest, ServiceResponse}, middleware::Next, web};
 use crate::{authentification::auth::{Auth, BearerState}, error::APIError};
 
 pub async fn authentification_middleware(
@@ -13,32 +13,19 @@ pub async fn authentification_middleware(
 
     // Récupération de auth
     let Some(auth) = req.app_data::<web::Data<Auth>>() else{
-        return Ok(req.into_response(HttpResponse::BadRequest().body("501")))
+        return Ok(req.into_response(APIError::NoAuthAppData.error_response()))
     };
 
     // Vérification de la présence du cookie Bearer
     let Some(cookie) = req.cookie("Bearer") else{
-        return Ok(req.into_response(HttpResponse::BadRequest().body("502")))
+        return Ok(req.into_response(APIError::NoCookieBearer.error_response()))
     };
 
     // Vérification de l'authentification
     let (bearer_state, (result, _)) = match auth.validation(cookie.value().to_string()){
         Ok(res)=>res,
         Err(e)=>{
-            if e == APIError::Expired{
-                // Si expirer suppression du cookie
-                let cookie = Cookie::build("Bearer", "")
-                        .path("/")
-                        .secure(true)
-                        .max_age(Duration::milliseconds(0))
-                        .http_only(true)
-                        .finish();
-                return Ok(req.into_response(HttpResponse::Ok()
-                .cookie(cookie)
-                .body("503")))
-            }else{
-                return Ok(req.into_response(HttpResponse::BadRequest().body("Erreur validation middleware")))
-            }   
+                return Ok(req.into_response(e.error_response())) 
         }
     };
     

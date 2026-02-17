@@ -12,16 +12,13 @@ mod stream_http;
 use crate::route::{get_list, get_repot_key, get_ssh_pub_key_server, send_ssh_key, send_ssh_key_tunnel, signin, signup, restore};
 
 #[post("/imaconnected")]
-async fn imaconnected(req: HttpRequest, auth: web::Data<Auth>) -> Result<HttpResponse, APIError>{
+async fn imaconnected(req: HttpRequest) -> Result<HttpResponse, APIError>{
     /* Extraction du cookie JWT */
     let Some(cookie) = req.cookie("Bearer") else{
         return Err(APIError::NoCookieBearer)
     };
 
-    let (_, (_, credentials)) = match auth.validation(cookie.value().to_string()){
-        Ok(res)=> res,
-        Err(e)=>return Err(e)
-    };
+    let credentials= Auth::decode_token(cookie.value())?;
     let Ok(credentials_json) = serde_json::to_string(&credentials)else{
         return Err(APIError::Json)
     };

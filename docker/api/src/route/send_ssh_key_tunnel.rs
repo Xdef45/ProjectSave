@@ -17,10 +17,7 @@ async fn send_ssh_key_tunnel(req: HttpRequest, ssh_key: web::Json<SshKey>, auth:
         return Err(APIError::NoCookieBearer)
     };
 
-    let (_, (_, credentials)) = match auth.validation(cookie.value().to_string()){
-        Ok(res)=> res,
-        Err(e)=>return Err(e)
-    };
+    let credentials = Auth::decode_token(cookie.value())?;
     /* Upload du fichier */
     let filepath= format!("/srv/repos/api/{}.pub", credentials.id,);
     install_client_tunnel_key(credentials.id, &ssh_key.ssh, filepath, auth.ssh_connexion.clone(), auth.sftp_connexion.clone()).await;

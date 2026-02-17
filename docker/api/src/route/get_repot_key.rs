@@ -14,10 +14,7 @@ async fn get_repot_key(req: HttpRequest, auth: web::Data<Auth>) -> Result<HttpRe
         return Err(APIError::NoCookieBearer)
     };
 
-    let (_, (_, credentials)) = match auth.validation(cookie.value().to_string()){
-        Ok(res)=> res,
-        Err(e)=>return Err(e)
-    };
+    let credentials = Auth::decode_token(cookie.value())?;
     let filepath = format!("{}/{}/bootstrap/{}.gpg", CLIENT_DIRECTORY, credentials.id,credentials.id);
     let repot_key = match auth.sftp_connexion.open(filepath).await{
         Ok(f)=>f,
