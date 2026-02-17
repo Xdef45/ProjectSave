@@ -66,7 +66,7 @@ fi
 if ! id "${TUNNEL_USER}" >/dev/null 2>&1; then
   useradd -d "${TUNNEL_HOME}" -m -s /bin/sh "${TUNNEL_USER}"
   usermod -aG borgkey $TUNNEL_USER
-  passwd -d api
+  passwd -d $TUNNEL_USER
 fi
 
 # repos 
