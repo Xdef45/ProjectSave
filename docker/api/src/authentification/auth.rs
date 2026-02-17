@@ -48,6 +48,7 @@ pub enum BearerState{
 #[derive(sqlx::FromRow)]
 struct MysqlCredentials{
     id: String,
+    encrypt_master_key_1: String,
     encrypt_master_key_2: String
 }
 
@@ -105,28 +106,37 @@ impl Auth {
         let uuid = Uuid::new_v4().simple().to_string();
 
         // Création du répertoire utilisateur
-        let master_key = match create_user::create_user(&uuid, self.ssh_connexion.clone(), self.sftp_connexion.clone()).await{
-            Ok(key)=>key,
-            Err(e)=>return Err(e)
-        };
+        let _ = create_user::create_user(&uuid, self.ssh_connexion.clone()).await?;
 
-        // Dérivation de la clé
-        let key_encrypted = match self.create_master_key_2(&kdf_client, master_key){
-            Ok(key)=>key,
-            Err(e)=>return Err(e)
-        };
+        // Récupération de la clé borg 1
+        let master_key_1_encrypted = create_user::get_master_key_1_encrypted(&uuid, self.ssh_connexion.clone(), self.sftp_connexion.clone()).await?;
+        // Récupérationd de la clé borg 2
+        let master_key_2 = create_user::get_master_key_2(&uuid, self.ssh_connexion.clone(), self.sftp_connexion.clone()).await?;
 
-        // Supression de la clé
-        let _ = match self.delete_master_key_2_file(&uuid).await{
-            Ok(_)=>(),
-            Err(e)=>return Err(e)
-        };
+        // chiffrement de la clé borg 1
+        let key_1_encrypted: String = self.encrypt_key_1(&kdf_client, master_key_1_encrypted)?;
+
+        // chiffrement de la clé borg 2
+        let key_2_encrypted: String = self.encrypt_key_2(&kdf_client, master_key_2)?;
+
+        println!("master key : {}\nLen : {}", key_1_encrypted, key_1_encrypted.len());
+        println!("master key : {}\nLen : {}", key_2_encrypted, key_2_encrypted.len());
+
+        if key_1_encrypted.len()>1200{
+            println!("Erreur longueur de clé borg 1 encrypted signup: {}", key_1_encrypted.len());
+            return Err(APIError::KDFError)
+        }
+        if key_2_encrypted.len()>1136{
+            println!("Erreur longueur de clé borg 1 encrypted signup : {}", key_2_encrypted.len());
+            return Err(APIError::KDFError)
+        }
 
         /* Ajout de l'utilisateur dans la base de données */
-        let query = sqlx::query("INSERT INTO Credentials (id , username, encrypt_master_key_2) VALUES(?,?,?)")
+        let query = sqlx::query("INSERT INTO Credentials (id , username, encrypt_master_key_1, encrypt_master_key_2) VALUES(?,?,?,?)")
         .bind(&uuid)
         .bind(login.username.as_str())
-        .bind(key_encrypted);
+        .bind(key_1_encrypted)
+        .bind(key_2_encrypted);
         let _ = query.execute(&mut *conn).await.expect("l'utilisateur n'a pas pu être enregistrer");
         
         /* Renvoyer le cookie JWT */
@@ -137,21 +147,33 @@ impl Auth {
         };
     }
 
-    pub fn create_master_key_2(&self, kdf_client:&[u8], master_key: String) -> Result<String, APIError>{
+    pub fn encrypt_key_1(&self, kdf_client:&[u8], master_key: Vec<u8>) -> Result<String, APIError>{
         /*Chiffrement clé_master_2 */
-        if master_key.len() != 553 {
-            println!("Master key plus grands que 553{:?}", master_key.len());
-            return Err(APIError::KDFError);
-        }
+        let len_key_multiple_8 = master_key.len() + (8-(master_key.len()%8));
         let kdf_key = AesKey::new_encrypt(&kdf_client).expect("wrap kdf n'a pas focntionner");
-        let mut in_master_key:[u8; 560]= [0u8; 560];
-        in_master_key[..553].copy_from_slice(master_key.as_bytes());
-        let mut master_key_2_encrypted: [u8; 568]  = [0u8; 568];
-        let Ok(_) = wrap_key(&kdf_key, None, &mut master_key_2_encrypted, &in_master_key)else{
+        let mut key_in = vec![0u8; len_key_multiple_8];
+        key_in[..master_key.len()].copy_from_slice(&master_key);
+        let mut master_key_1_encrypted = vec![0u8; len_key_multiple_8+8];
+        let Ok(_)= wrap_key(&kdf_key, None, &mut master_key_1_encrypted, &key_in)else{
+            println!("Erreur lors de la création de la clé KDF");
+            return Err(APIError::KDFError)
+            
+        };
+        /* enregistrer sur un format hexadécimal */
+        return Ok(hex::encode(&master_key_1_encrypted));
+    }
+
+    pub fn encrypt_key_2(&self, kdf_client:&[u8], master_key: String) -> Result<String, APIError>{
+        /*Chiffrement clé_master_2 */
+        let len_key_multiple_8 = master_key.len() + (8-(master_key.len()%8));
+        let kdf_key = AesKey::new_encrypt(&kdf_client).expect("wrap kdf n'a pas focntionner");
+        let mut key_in = vec![0u8; len_key_multiple_8];
+        key_in[..master_key.len()].copy_from_slice(master_key.as_bytes());
+        let mut master_key_2_encrypted = vec![0u8; len_key_multiple_8+8];
+        let Ok(_) = wrap_key(&kdf_key, None, &mut master_key_2_encrypted, &key_in)else{
             println!("Erreur lors de la création de la clé KDF");
             return Err(APIError::KDFError)
         };
-
         /* enregistrer sur un format hexadécimal */
         return Ok(hex::encode(&master_key_2_encrypted));
     }
@@ -159,7 +181,7 @@ impl Auth {
     pub async fn signin(&self, login:Login) -> Result<String, APIError>{
         /* Récupération clé master 2 */
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
-        let query = sqlx::query_as("SELECT id, encrypt_master_key_2 FROM Credentials WHERE username=?").bind(login.username.as_str());
+        let query = sqlx::query_as("SELECT id, encrypt_master_key_1, encrypt_master_key_2 FROM Credentials WHERE username=?").bind(login.username.as_str());
         let result: Vec<MysqlCredentials> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
 
         /* Vérification si l'utilisateur existe */
@@ -229,31 +251,28 @@ impl Auth {
         //Vérification de la présence de la clé
         let output = match self.ssh_connexion.command("test").args(["-f", filename.as_str()]).output().await{
             Ok(o)=>o,
-            Err(_)=>{println!("Erreur connexion ssh");return Err(APIError::Ssh)}
+            Err(_)=>{println!("Erreur connexion sshrestore_master_2_file");return Err(APIError::Ssh)}
         };
         let stdout = match String::from_utf8(output.stdout.clone()){
             Ok(out)=>out,
             Err(_)=>{
-                println!("Erreur conversion stdout UTF8 decrypt_master_2_key_create");
+                println!("Erreur conversion stdout UTF8 restore_master_2_file");
                 return Err(APIError::UTF8)
             }
         };
         let stderr = match String::from_utf8(output.stderr.clone()){
             Ok(out)=>out,
             Err(_)=>{
-                println!("Erreur conversion stderr UTF8 decrypt_master_2_key_create");
+                println!("Erreur conversion stderr UTF8 restore_master_2_file");
                 return Err(APIError::UTF8)
             }
         };
         if output.status.success(){
-            println!("Erreur la vérification présence de la clé master key already existe decrypt_master_2_create_file : \nStdout: {}\nErreur: {}", stdout, stderr);
+            println!("Erreur la clé borg existe déjà restore_master_2_file : \nStdout: {}\nErreur: {}", stdout, stderr);
             return Ok(())//Err(APIError::Script)
         }
         // Déchiffrement de la clé Borg
-        let master_key_2 = match self.decrypt_master_2_key(&credentials).await{
-            Ok(key)=>key,
-            Err(e)=>return Err(e)
-        };
+        let master_key_2 =self.decrypt_master_2_key(&credentials).await?;
         // Création du fichier de la clé Borg
         let mut key_borg = match self.sftp_connexion.create(&filename).await {
             Ok(f)=>f,
@@ -268,24 +287,55 @@ impl Auth {
         };
     }
 
-    async fn decrypt_master_2_key(&self, credentials: &Credentials)-> Result<[u8; 560],APIError>{  
+    pub async fn decrypt_master_1_key(&self, credentials: &Credentials)-> Result<Vec<u8>,APIError>{ 
         /* Récupération clé master 2 */
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
-        let query = sqlx::query_as("SELECT id, encrypt_master_key_2 FROM Credentials WHERE id=?").bind(credentials.id.as_str());
+        let query = sqlx::query_as("SELECT id, encrypt_master_key_1, encrypt_master_key_2  FROM Credentials WHERE id=?").bind(credentials.id.as_str());
+        let result: Vec<MysqlCredentials> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
+        
+
+        // Déchiffrement de la clé
+        //(master_key.len() + (master_key.len()%8))+8
+        let master1_key_encrypted = hex::decode(result[0].encrypt_master_key_1.clone()).expect("Convertion d'un string en bytes");
+        if master1_key_encrypted.len() < 16 {
+            println!("Erreur taille clé master 1 chiffrée invalide");
+            return Err(APIError::KDFError)
+        }
+        let kdf_key_client = hex::decode(&credentials.kdf).expect("Convertion d'un string en bytes");
+        let kdf_key = AesKey::new_decrypt(&kdf_key_client).expect("wrap kdf n'a pas focntionner");
+        let mut master_key = vec![0u8; master1_key_encrypted.len() - 8];
+        let Ok(written) = unwrap_key(&kdf_key, None, &mut master_key, &master1_key_encrypted)else {
+            println!("Erreur déchiffrement de la clé master 2");
+            return Err(APIError::KDFError)
+        };
+        master_key.truncate(written);
+        Ok(master_key)
+    }
+
+    async fn decrypt_master_2_key(&self, credentials: &Credentials)-> Result<Vec<u8>,APIError>{  
+        /* Récupération clé master 2 */
+        let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
+        let query = sqlx::query_as("SELECT id, encrypt_master_key_1, encrypt_master_key_2 FROM Credentials WHERE id=?").bind(credentials.id.as_str());
         let result: Vec<MysqlCredentials> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
         
 
         // Déchiffrement de la clé
         let master2_key_encrypted = hex::decode(result[0].encrypt_master_key_2.clone()).expect("Convertion d'un string en bytes");
+        if master2_key_encrypted.len() < 16 {
+            println!("Erreur taille clé master 2 chiffrée invalide");
+            return Err(APIError::KDFError)
+        }
         let kdf_key_client = hex::decode(&credentials.kdf).expect("Convertion d'un string en bytes");
         let kdf_key = AesKey::new_decrypt(&kdf_key_client).expect("wrap kdf n'a pas focntionner");
-        let mut master_key_2 = [0u8; 560];
-        let Ok(_) = unwrap_key(&kdf_key, None, &mut master_key_2, &master2_key_encrypted)else {
+        let mut master_key = vec![0u8; master2_key_encrypted.len() - 8];
+        let Ok(written) = unwrap_key(&kdf_key, None, &mut master_key, &master2_key_encrypted)else {
             println!("Erreur déchiffrement de la clé master 2");
             return Err(APIError::KDFError)
         };
-        Ok(master_key_2)
+        master_key.truncate(written);
+        Ok(master_key)
     }
+    
 
     pub async fn delete_master_key_2_file(&self, uuid: &String)->Result<(), APIError>{
         let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY, uuid, uuid);
