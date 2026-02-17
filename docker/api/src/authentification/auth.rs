@@ -273,7 +273,10 @@ impl Auth {
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
         let query = sqlx::query_as("SELECT id, encrypt_master_key_2 FROM Credentials WHERE id=?").bind(credentials.id.as_str());
         let result: Vec<MysqlCredentials> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
-
+        if result.len() != 1 {
+            println!("L'utilisateur {} n'est pas connue dans la base de données", credentials.id);
+            return Err(APIError::NotSignup);
+        }
         // Déchiffrement de la clé
         let master2_key_encrypted = hex::decode(result[0].encrypt_master_key_2.clone()).expect("Convertion d'un string en bytes");
         let kdf_key_client = hex::decode(&credentials.kdf).expect("Convertion d'un string en bytes");

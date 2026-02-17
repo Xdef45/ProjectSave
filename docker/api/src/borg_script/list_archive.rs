@@ -34,7 +34,7 @@ pub async fn list_archive(uuid: &String, ssh_connexion: Arc<Session>,)->Result<A
         }
     };
     if ! output.status.success(){
-        println!("Erreur lors du listing des archive\nstdout {}\n stderr: {}", &stdout, &stderr);
+        println!("Erreur lors du listing des archives\nstdout {}\n stderr: {}", &stdout, &stderr);
         return Err(APIError::Script)
     }
 
@@ -56,7 +56,7 @@ pub struct ArchiveFile{
 
 
 pub async fn list_archive_content(uuid: &String, ssh_connexion: Arc<Session>, archive_name:String)->Result<ArchiveContent, APIError>{
-    let output = match ssh_connexion.command("sudo").args([String::from("/usr/local/sbin/list.sh"), uuid.to_string(), archive_name]).output().await{
+    let output = match ssh_connexion.command("sudo").args([String::from("/usr/local/sbin/list.sh"), uuid.to_string(), archive_name.clone()]).output().await{
         Ok(o)=>o,
         Err(_)=>{println!("connexion ssh erreur");return Err(APIError::Ssh)}
     };
@@ -75,7 +75,7 @@ pub async fn list_archive_content(uuid: &String, ssh_connexion: Arc<Session>, ar
         }
     };
     if ! output.status.success(){
-        println!("Erreur lors du listing des archive\nstdout {}\n stderr: {}", &stdout, &stderr);
+        println!("Erreur lors du listing du contenu de l'archive {}\nstdout {}\n stderr: {}", archive_name ,&stdout, &stderr);
         return Err(APIError::Script)
     }
     let mut archive_content = Vec::<ArchiveFile>::new();
