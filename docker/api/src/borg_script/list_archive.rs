@@ -1,5 +1,5 @@
 use openssh::Session;
-use std::{sync::Arc, vec};
+use std::sync::Arc;
 use serde_json;
 use serde::{Deserialize, Serialize};
 use crate::error::APIError;

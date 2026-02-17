@@ -12,10 +12,7 @@ struct PubSshKey{
 
 #[post("/get_ssh_pub_key_server")]
 async fn get_ssh_pub_key_server(auth: web::Data<Auth>)-> Result<HttpResponse, APIError>{
-    let ssh_key = match ssh_pub_key_server(auth.ssh_connexion.clone()).await{
-        Ok(key)=>key,
-        Err(e)=> return Err(e)
-    };
+    let ssh_key = ssh_pub_key_server(auth.ssh_connexion.clone()).await?;
     let ssh_pub_key = PubSshKey{ssh_pub: ssh_key};
     Ok(HttpResponse::Ok().json(ssh_pub_key))
 }

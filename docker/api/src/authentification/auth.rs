@@ -1,4 +1,3 @@
-use actix_web::ResponseError;
 use sqlx::{mysql, MySqlPool};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
@@ -36,30 +35,6 @@ pub struct Credentials{
     pub exp: u64,
     pub id: String,
     pub kdf: String
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub enum LoginState{
-    NotSignup,
-    KDFError
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub enum LogupState{
-    KDFError,
-    AlreadyExist,
-    InvalidPassword,
-    /// username inférieur à 5
-    UsernameTooShort,
-    /// Password length inférieur à 12
-    PasswordTooShort,
-    /// Pas de caractère spécial
-    SpecialCharMissing,
-    /// Pas de majuscule
-    MajusculeMissing,
-    /// Pas de chiffre
-    NumberMissing,
-    ScriptError
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -340,56 +315,43 @@ impl Auth {
         return Ok(())
     }
 
-    /* Vérifier token jwt */
-    pub fn validation(&self,token_jwt: String)-> Result<(BearerState, (Option<String>, Credentials)), APIError>{
+        pub fn decode_token(token_jwt: &str) -> Result<Credentials, APIError>{
         let jwt_secret=env::var("JWT_SECRET").expect("JWT_SECRET inexistant");
         let validation = Validation::new(Algorithm::HS384);
-        match decode::<Credentials>(&token_jwt, &DecodingKey::from_secret(jwt_secret.as_bytes()), &validation){
-            Err(e)=> {
-                if e.into_kind() ==  ErrorKind::ExpiredSignature{
-                    println!("Le cookie Bearer a expiré");
-                    return Err(APIError::Expired)
-                }else{
-                    println!("Erreur inconnue concernant la validation du cookie");
-                    return Err(APIError::ErrorBearer)
-                }
-            },
-            Ok(token)=> {
-                if token.claims.exp - REFRESH_TIME > get_current_timestamp(){
-                    let credentials =  Credentials { 
-                        exp: token.claims.exp, 
-                        id: token.claims.id, 
-                        kdf: token.claims.kdf };
-                    return Ok((BearerState::Valid, (None, credentials)))
-                    
-                }else{
-                    let credentials =  Credentials { 
-                        exp: get_current_timestamp()+EXPIRE_TIME, 
-                        id: token.claims.id, 
-                        kdf: token.claims.kdf };
-                        let token = match self.create_token(&credentials){
-                            Ok(t)=>t,
-                            Err(e)=> return Err(e)
-                        };
-                    return Ok((BearerState::Refresh, (Some(token), credentials)))
-                }
-            }
-        };
-    }
-
-    pub fn decode_token(token_jwt: &String) -> Credentials{
-        let jwt_secret=env::var("JWT_SECRET").expect("JWT_SECRET inexistant");
-        let validation = Validation::new(Algorithm::HS384);
-        let token = decode::<Credentials>(
-                &token_jwt,
+        let token = match decode::<Credentials>(
+                token_jwt,
                 &DecodingKey::from_secret(jwt_secret.as_bytes()),
                 &validation
-            ).expect("le decodage du token c'est mal déroulé");
+            ){
+                Ok(t)=>t,
+                Err(e)=>{
+                    println!("le decodage du token c'est mal déroulé");
+                    if e.into_kind() ==  ErrorKind::ExpiredSignature{
+                        println!("Le cookie Bearer a expiré");
+                        return Err(APIError::Expired)
+                    }else{
+                        println!("Erreur inconnue concernant la validation du cookie");
+                        return Err(APIError::ErrorBearer)
+                    }
+                }
+            };
         let credentials =  Credentials { 
             exp: token.claims.exp, 
             id: token.claims.id, 
             kdf: token.claims.kdf };
-        return credentials
+        return Ok(credentials)
+    }
+
+    /* Vérifier token jwt */
+    pub fn validation(&self,token_jwt: String)-> Result<(BearerState, (Option<String>, Credentials)), APIError>{
+        let mut credentials = Auth::decode_token(token_jwt.as_str())?;
+        if credentials.exp - REFRESH_TIME > get_current_timestamp(){
+            return Ok((BearerState::Valid, (None, credentials)))
+        }else{
+            credentials.exp = get_current_timestamp()+EXPIRE_TIME;
+            let token = self.create_token(&credentials)?;
+            return Ok((BearerState::Refresh, (Some(token), credentials)))
+        }
     }
 
     fn create_token(&self, credentials: &Credentials) -> Result<String, APIError>{

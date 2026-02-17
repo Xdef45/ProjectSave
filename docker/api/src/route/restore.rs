@@ -18,20 +18,9 @@ async fn get_restore(req: HttpRequest, auth: web::Data<Auth>, archive: web::Json
         return Err(APIError::NoCookieBearer)
     };
 
-    let (_, (_, credentials)) = match auth.validation(cookie.value().to_string()){
-        Ok(res)=> res,
-        Err(e)=>return Err(e)
-    };
-    let _ = match auth.restore_master_key_2_file(&credentials).await{
-        Ok(_)=>(),
-        Err(e)=>return Err(e)
-    };
-    let restore_file = match restore(credentials.id, archive.archive_name.clone(), auth.ssh_connexion.clone(), auth.sftp_connexion.clone()).await{
-        Ok(f)=>f,
-        Err(a)=>{
-            return Err(a);
-        }
-    };
+    let credentials=Auth::decode_token(cookie.value())?;
+    let _ = auth.restore_master_key_2_file(&credentials).await?;
+    let restore_file = restore(credentials.id, archive.archive_name.clone(), auth.ssh_connexion.clone(), auth.sftp_connexion.clone()).await?;
     let reader = TokioCompatFile::from(restore_file);
     let stream = StreamBuffer::new(reader);
     return Ok(HttpResponse::Ok().streaming(stream))

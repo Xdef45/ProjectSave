@@ -11,10 +11,7 @@ async fn signup(id: web::Json<Login>, auth: web::Data<Auth>) -> Result<HttpRespo
     };
 
     // Création du Token
-    let token = match auth.signup(login).await {
-        Ok(token)=>token,
-        Err(e)=>return Err(e)
-    };
+    let token = auth.signup(login).await?;
 
     let cookie = Cookie::build("Bearer", token)
     .path("/")

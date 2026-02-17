@@ -1,5 +1,5 @@
 use actix_web::{post,web, cookie::Cookie, HttpResponse};
-use crate::{authentification::auth::{Auth, Login, LoginState}, error::APIError};
+use crate::{authentification::auth::{Auth, Login}, error::APIError};
 
 #[post("/signin")]
 async fn signin(id: web::Json<Login>, auth: web::Data<Auth>) -> Result<HttpResponse,APIError>{
