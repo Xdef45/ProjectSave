@@ -11,8 +11,11 @@ CLIENT="${1:?Usage: $0 CLIENT /path/to/save}"
 PATTERN_FILE="${2:?Usage: $0 CLIENT /path/to/save PATTERN_FILE}"
 LOCAL_USER="$(id -un)"
 
+
+SAVE_NAME=$(date +%F_%H-%M-%S)
+
 LOG_DIRECTORY="$HOME/.config/borg/logs"
-LOG_FILE="${LOG_DIRECTORY}/$(date +%F_%H-%M-%S)_${CLIENT}.log"
+LOG_FILE="${LOG_DIRECTORY}/${SAVE_NAME}_${CLIENT}.log"
 
 if [ ! -d $LOG_DIRECTORY ]; then
 mkdir $LOG_DIRECTORY
@@ -95,12 +98,12 @@ log "Starting borg backup"
 export BORG_RSH="ssh -p $SERVER_SSH_PORT -i $CLIENT_SSH_KEY -o IdentitiesOnly=yes -o BatchMode=yes"
 {
 borg create --compression zstd,6 --stats --list --json \
-  "${REPO}::$(date +%F_%H-%M-%S)" \
+  "${REPO}::${SAVE_NAME}" \
   "--patterns-from" \
   "$PATTERN_FILE"
 } >> "$LOG_FILE" 2>&1
 borg create --compression zstd,6 \
-  "${REPO}::$(date +%F_%H-%M-%S)_logs" \
+  "${REPO}::${SAVE_NAME}_logs" \
   $LOG_FILE
 shred -u $LOG_DIRECTORY/*
 # 4) Cleanup de la clé claire côté client (déclenché par le serveur via tunnel)
