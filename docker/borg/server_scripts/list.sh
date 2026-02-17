@@ -9,6 +9,11 @@ HOME_DIR="/srv/repos/${CLIENT}"
 KEY_CLEAR="${HOME_DIR}/.config/borg/keys/srv_repos_${CLIENT}_repo"
 API_USER="api"
 
+if [ ! -f $KEY_CLEAR ]; then
+    echo "Repository key: $KEY_CLEAR not present in .config/borg/keys of $CLIENT."
+    exit 1
+fi
+
 chmod 644 "${KEY_CLEAR}"
 chown "${CLIENT}":"${API_USER}" "${KEY_CLEAR}"
 
@@ -19,5 +24,4 @@ else
     sudo -u "${CLIENT}" borg list "${REPOSITORY_PATH}"::"${ARCHIVE}" --json-lines
 fi
 
-shred "${KEY_CLEAR}"
-rm "${KEY_CLEAR}"
+shred -u "${KEY_CLEAR}"
