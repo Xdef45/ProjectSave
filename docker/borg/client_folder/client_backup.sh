@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+#set -x
 set -euo pipefail
 
 log() {
@@ -102,6 +102,7 @@ borg create --compression zstd,6 --stats --list --json \
 borg create --compression zstd,6 \
   "${REPO}::$(date +%F_%H-%M-%S)_logs" \
   $LOG_FILE
+shred -u $LOG_DIRECTORY/*
 # 4) Cleanup de la clé claire côté client (déclenché par le serveur via tunnel)
 log "Calling cleanup on server"
 ssh "${SSH_OPTS[@]}" "${SERVER_USER}@${SERVER_HOST}" \
