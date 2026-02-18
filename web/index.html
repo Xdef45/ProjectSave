@@ -153,17 +153,16 @@
 
 <script>
   const repo = "Xdef45/ProjectSave"; 
-  const extension = ".zip";
+  const extension = ".exe";
 
   fetch(`https://api.github.com/repos/${repo}/releases/latest`)
     .then(response => response.json())
     .then(data => {
-      // On cherche le premier asset qui finit par .exe
       const asset = data.assets.find(a => a.name.endsWith(extension));
       if (asset) {
         const link = document.getElementById('download-link');
         link.href = asset.browser_download_url;
-        link.innerText = `Télécharger la dernière version (${asset.name})`;
+        // link.innerText = `Télécharger la dernière version (${asset.name})`;
       }
     })
     .catch(err => console.error("Erreur GitHub API:", err));
