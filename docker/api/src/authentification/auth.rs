@@ -122,9 +122,6 @@ impl Auth {
         // chiffrement de la clé borg 2
         let key_2_encrypted: String = self.encrypt_key_2(&kdf_client, master_key_2)?;
 
-        println!("master key : {}\nLen : {}", key_1_encrypted, key_1_encrypted.len());
-        println!("master key : {}\nLen : {}", key_2_encrypted, key_2_encrypted.len());
-
         if key_1_encrypted.len()>1200{
             println!("Erreur longueur de clé borg 1 encrypted signup: {}", key_1_encrypted.len());
             return Err(APIError::KDFError)

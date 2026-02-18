@@ -12,14 +12,12 @@ pub struct Logs{
 pub async fn list_log_content(uuid: &String, ssh_connexion: Arc<Session>)->Result<Logs, APIError>{
     let mut archives_content = Vec::<ArchiveContent>::new();
     let archives = list_archive(uuid, ssh_connexion.clone()).await?;
-    println!("Quel est le nom de l'archive{:?}", &archives);
     for archive_name in &archives.archives{
         archives_content.push(list_archive_content(uuid, ssh_connexion.clone(), &archive_name.archive).await?)
     }
-    println!("Quels sont le contenu de l'archive {:?}", &archives_content);
     let mut logs_path = Vec::<String>::new();
     for archive in archives_content{
-        logs_path.push(get_log_filename(archive)?);
+        logs_path.push(get_log_filename(archive, uuid)?);
     } 
     let mut logs = Logs{logs: Vec::<String>::new()};
     
@@ -34,10 +32,12 @@ pub async fn list_log_content(uuid: &String, ssh_connexion: Arc<Session>)->Resul
 }
 
 
-fn get_log_filename(archive: ArchiveContent)->Result<String, APIError>{
-    let log_filename = format!("{}_logs",archive.archive_name);
+fn get_log_filename(archive: ArchiveContent, uuid: &String)->Result<String, APIError>{
+    let log_filename = format!("{}_{}_logs",archive.archive_name, uuid);
+    println!("Log_file : {}", &log_filename);
     let mut log_path = None;
     for file in archive.archive_content{
+        println!("file : {}", &file.path);
         if file.path.contains(&log_filename){
             log_path = Some(file.path);
             break;
