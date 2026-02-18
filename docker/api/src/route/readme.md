@@ -3,23 +3,51 @@ Ce cas concerne toutes les requêtes qui demande d'être authentifié au préala
 
 ## Output erreur
 ```
-Erreur inconnue middleware : 500
-```
-```
-Error variable app_data Auth inexistante: 501
-```
-```
-Pas de cookie Bearer: 502
-```
-```
-Token expiré: 503
-```
+APIError::NoFile=>"600",
+            APIError::Metadata=>"601",
 
+            // Cas Généraux
+            APIError::NoCookieBearer=>"101",
+            APIError::NoAuthAppData=>"102",
+            APIError::Script=>"103",
+            APIError::Ssh=>"104",
+            APIError::Sftp=>"105",
+            APIError::ValidInput=>"106",
+
+            // File
+            APIError::Write=>"200",
+
+            //Convertion
+            APIError::UTF8=>"300",
+            APIError::Json=>"301",
+            APIError::Usize=>"302",
+
+            //Logup
+            APIError::AlreadyExist=>"1",
+            APIError::UsernameTooShort=>"2",
+            APIError::InvalidPassword=>"3",
+            APIError::PasswordTooShort=>"4",
+            APIError::SpecialCharMissing=>"5",
+            APIError::MajusculeMissing=>"6",
+            APIError::NumberMissing=>"7",
+
+            // Login
+            APIError::NotSignup=>"0",
+
+            //Bearer
+            APIError::Expired=>"Effacement du cookie"
+            APIError::ErrorBearer=>"504",
+
+            // token
+            APIError::EncodeToken=>"700",
+            //Encryption
+            APIError::KDFError =>"400"
+```
 
 # /api/signup
 Lors de l'inscription d'un nouveau utilisateur, celui-ci lui envoie son username et password, il vérifie si l'utilisateur n'est pas déjà enregistré, l'ajoute à la base de données et lui renvoie un cookie d'authentification'.
 ## input
-Type: ```application/json```
+Type: ```application/json``` | method: ```post```
 ```
 {
     "username": "marc-antoine.dumar@gmail.com",
@@ -63,7 +91,7 @@ Error lors de la création du KDF: 8
 # /api/signin
 Lors de la connection d'un utilisateur, celui-ci lui envoie son username et password, vérifie s'il est déjà enregistrer et lui renvoie son cookie d'authentification
 ## input
-Type: ```application/json```
+Type: ```application/json``` | method: ```post```
 ```
 {
     "username": "marc-antoine.dumar@gmail.com",
@@ -89,7 +117,7 @@ Une fois l'utilisateur authentifier avec son cookie, on lui envoie sous forme de
 Cookie Bearer=<JWT_Token>
 ```
 ## Output
-Type: ```multipart/form_data```
+Type: ```application/octet stream```
 ```
 <repot_key_encrypted>
 ```
@@ -101,29 +129,54 @@ Fichier pas trouvé: 1
 Erreur inconnue: 0
 ```
 
+# /api/get_ssh_pub_key_server
+Envoie à l'utilisateur de la clé ssh publique du serveur pour qu'il se connecte à l'utilisateur
+## input
+Type: ```application/json``` | method: ```post```
+
+
+# /api/send_ssh_key_tunnel
+L'utilisateur envoie au serveur la clé ssh publique pour se connecter à l'utilisateur tunnel sur le serveur
+## input
+Type: ```application/json``` | method: ```post```
+```
+{
+    ssh_key: <ssh_key_value>
+}
+```
+
 # /api/send_ssh_key
 Une fois l'utilisateur authentifier avec son cookie, il nous envoie sa clé ssh publique sous forme d'un fichier,on lui renvoie un status OK.
 ## input
-Type: ```Header```
+### Header
 ```
 Cookie Bearer=<JWT_Token>
 ```
-Type: ```multipart/form_data```
+Type: ```application/json```
 ```
-<ssh.pub_key>
+{
+    ssh_key: <ssh_key_value>
+}
 ```
 ## output
 ```
 http code 200
 ```
 
-# /api/list_repot
+# /api/get_list
 Une fois l'utilisateur authentifier avec son cookie, il demande le contenue de repot Borg sous forme d'un json.
 ## input
 Type: ```Header```
 ```
 Cookie Bearer=<JWT_Token>
 ```
+body vide pour lister les archives disponibles ou
+```
+{
+    archive_name: <archive_name>
+}
+```
+pour lister le contenu des archive
 ## output
 Type: ```application/json```
 ```
@@ -131,3 +184,45 @@ Type: ```application/json```
     "archives": []
 }
 ```
+ou avec archive_name spécifier
+```
+{
+    "archive_name": "<nom_de_l'archive>"
+    "archive_content": [
+        {
+            "type": "-", 
+            "path": "mnt/c/Users/arthu/Documents/Analyse Fonctionnelle/BeteACorne.png", 
+            "mtime": "2025-11-07T13:51:02.354852", "size": 108736
+        },
+        {
+            "type": "-", 
+            "path": "mnt/c/Users/arthu/Documents/Analyse Fonctionnelle/BeteACorne.png", 
+            "mtime": "2025-11-07T13:51:02.354852", "size": 108736
+        }
+    ]
+}
+```
+# /api/get_restore
+## input
+Type: ```Header```
+```
+Cookie Bearer=<JWT_Token>
+```
+```
+{
+    archive_name: <archive_name>
+}
+```
+## output
+Type: ```application/octet-stream```
+```
+<archive>.tar.gz
+```
+
+# api/get_log
+## input
+### Header
+```
+Cookie Bearer=<JWT_Token>
+```
+## output

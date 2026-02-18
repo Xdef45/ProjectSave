@@ -4,12 +4,12 @@ use serde_json;
 use serde::{Deserialize, Serialize};
 use crate::error::APIError;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ArchiveData{
     pub archive: String,
     pub time: String
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Archives{
     pub archives: Vec<ArchiveData>
 }
@@ -42,12 +42,12 @@ pub async fn list_archive(uuid: &String, ssh_connexion: Arc<Session>,)->Result<A
     return Ok(archives)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ArchiveContent{
     pub archive_name: String,
     pub archive_content: Vec<ArchiveFile>
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ArchiveFile{
     r#type: String,
     pub path: String,

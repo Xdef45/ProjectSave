@@ -1,9 +1,7 @@
-use openssl::kdf;
 use sqlx::{mysql, MySqlPool};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use openssl::aes::{AesKey, unwrap_key, wrap_key};
 use aes_gcm::{
     aead::{Aead, AeadCore, KeyInit, OsRng},
     Aes256Gcm, Nonce, Key // Or `Aes128Gcm`
@@ -123,9 +121,6 @@ impl Auth {
 
         // chiffrement de la clé borg 2
         let key_2_encrypted: String = self.encrypt_key_2(&kdf_client, master_key_2)?;
-
-        println!("master key : {}\nLen : {}", key_1_encrypted, key_1_encrypted.len());
-        println!("master key : {}\nLen : {}", key_2_encrypted, key_2_encrypted.len());
 
         if key_1_encrypted.len()>1200{
             println!("Erreur longueur de clé borg 1 encrypted signup: {}", key_1_encrypted.len());

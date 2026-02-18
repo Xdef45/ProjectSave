@@ -2,22 +2,47 @@ use openssh::Session;
 use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use crate::error::APIError;
-use crate::borg_script::list_archive::{ArchiveContent, list_archive, list_archive_content};
+use crate::borg_script::list_archive::{ArchiveContent, list_archive, list_archive_content, Archives};
 
 #[derive(Serialize, Deserialize)]
 pub struct Logs{
     logs: Vec<String>
 }
 
+/*
+{
+    archives: [
+        ArchiveData { archive: "2026-02-18_11-43-46", time: "2026-02-18T10:43:50.000000" }, 
+        ArchiveData { archive: "2026-02-18_11-43-46_logs", time: "2026-02-18T10:44:01.000000"}
+        ] 
+}
+[
+    ArchiveContent { 
+        archive_name: "2026-02-18_11-43-46", 
+        archive_content: [
+            ArchiveFile { type: "-", path: "mnt/d/2025-12-17 14-47-33.mkv", mtime: "2025-12-17T13:48:04.000000", size: 9806209 }
+        ] 
+    }, 
+    ArchiveContent { 
+        archive_name: "2026-02-18_11-43-46_logs", 
+        archive_content: [
+            ArchiveFile { type: "-", path: "home/hugo/.config/borg/logs/2026-02-18_11-43-46_71aea833849e4c258f17c381669b1c7c.log", mtime: "2026-02-18T10:43:59.864507", size: 1835 }
+        ] 
+    }
+]
+*/
+
 pub async fn list_log_content(uuid: &String, ssh_connexion: Arc<Session>)->Result<Logs, APIError>{
     let mut archives_content = Vec::<ArchiveContent>::new();
-    let archives = list_archive(uuid, ssh_connexion.clone()).await?;
+    let mut archives = list_archive(uuid, ssh_connexion.clone()).await?;
+    extract_log_archive(&mut archives);
+    
     for archive_name in &archives.archives{
         archives_content.push(list_archive_content(uuid, ssh_connexion.clone(), &archive_name.archive).await?)
     }
     let mut logs_path = Vec::<String>::new();
     for archive in archives_content{
-        logs_path.push(get_log_filename(archive)?);
+        logs_path.push(get_log_filename(archive, uuid)?);
     } 
     let mut logs = Logs{logs: Vec::<String>::new()};
     
@@ -31,11 +56,26 @@ pub async fn list_log_content(uuid: &String, ssh_connexion: Arc<Session>)->Resul
     return Ok(logs)
 }
 
+fn extract_log_archive(archive: &mut Archives){
+    for i in (0..archive.archives.len()).step_by(1).rev(){
+        let filename = &archive.archives[i].archive;
+        let Some((_,log)) = filename.split_at_checked(filename.len()-5)else {
+            continue;
+        };
+        if log != "_logs"{
+            archive.archives.remove(i);
+        }
+    }
+}
 
-fn get_log_filename(archive: ArchiveContent)->Result<String, APIError>{
-    let log_filename = format!("{}_logs",archive.archive_name);
+fn get_log_filename(archive: ArchiveContent, uuid: &String)->Result<String, APIError>{
+    let Some((first_part, _)) =  archive.archive_name.split_at_checked(archive.archive_name.len()-5) else{
+        return Err(APIError::Script);
+    };
+    let log_filename = format!("{}_{}.log",first_part, uuid);
     let mut log_path = None;
     for file in archive.archive_content{
+        println!("file : {}", &file.path);
         if file.path.contains(&log_filename){
             log_path = Some(file.path);
             break;
@@ -79,7 +119,10 @@ async fn retore_log_file(uuid: &String, ssh_connexion:Arc<Session>, archive_name
 
 async fn get_log_file(uuid: &String, ssh_connexion:Arc<Session>, archive_name: &String, log_path: &String)->Result<String, APIError>{
     // restoration du fichier
-    let output = match ssh_connexion.command("cat").arg(format!("/srv/repos/{}/restore/{}_{}.log", uuid, archive_name, uuid)).output().await{
+     let Some((first_part, _)) =  archive_name.split_at_checked(archive_name.len()-5) else{
+        return Err(APIError::Script);
+    };
+    let output = match ssh_connexion.command("cat").arg(format!("/srv/repos/{}/restore/{}_{}.log", uuid, first_part, uuid)).output().await{
         Ok(o)=>o,
         Err(_)=>{println!("connexion ssh erreur");return Err(APIError::Ssh)}
     };
@@ -105,7 +148,10 @@ async fn get_log_file(uuid: &String, ssh_connexion:Arc<Session>, archive_name: &
 }
 async fn delete_log_file(uuid: &String, ssh_connexion:Arc<Session>, archive_name: &String, log_path: &String)->Result<(), APIError>{
     // restoration du fichier
-    let output = match ssh_connexion.command("rm").arg(format!("/srv/repos/{}/restore/{}_{}.log", uuid, archive_name, uuid)).output().await{
+    let Some((first_part, _)) =  archive_name.split_at_checked(archive_name.len()-5) else{
+        return Err(APIError::Script);
+    };
+    let output = match ssh_connexion.command("rm").arg(format!("/srv/repos/{}/restore/{}_{}.log", uuid, first_part, uuid)).output().await{
         Ok(o)=>o,
         Err(_)=>{println!("connexion ssh erreur");return Err(APIError::Ssh)}
     };
