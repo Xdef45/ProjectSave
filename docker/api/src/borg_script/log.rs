@@ -150,7 +150,10 @@ async fn get_log_file(uuid: &String, ssh_connexion:Arc<Session>, archive_name: &
 }
 async fn delete_log_file(uuid: &String, ssh_connexion:Arc<Session>, archive_name: &String, log_path: &String)->Result<(), APIError>{
     // restoration du fichier
-    let output = match ssh_connexion.command("rm").arg(format!("/srv/repos/{}/restore/{}_{}.log", uuid, archive_name, uuid)).output().await{
+    let Some((first_part, _)) =  archive_name.split_at_checked(archive_name.len()-5) else{
+        return Err(APIError::Script);
+    };
+    let output = match ssh_connexion.command("rm").arg(format!("/srv/repos/{}/restore/{}_{}.log", uuid, first_part, uuid)).output().await{
         Ok(o)=>o,
         Err(_)=>{println!("connexion ssh erreur");return Err(APIError::Ssh)}
     };
