@@ -40,7 +40,6 @@ pub async fn list_log_content(uuid: &String, ssh_connexion: Arc<Session>)->Resul
     for archive_name in &archives.archives{
         archives_content.push(list_archive_content(uuid, ssh_connexion.clone(), &archive_name.archive).await?)
     }
-    println!("{:?}", archives_content);
     let mut logs_path = Vec::<String>::new();
     for archive in archives_content{
         logs_path.push(get_log_filename(archive, uuid)?);
@@ -74,7 +73,6 @@ fn get_log_filename(archive: ArchiveContent, uuid: &String)->Result<String, APIE
         return Err(APIError::Script);
     };
     let log_filename = format!("{}_{}.log",first_part, uuid);
-    println!("Log_file : {}", &log_filename);
     let mut log_path = None;
     for file in archive.archive_content{
         println!("file : {}", &file.path);

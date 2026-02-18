@@ -12,6 +12,7 @@ pub enum APIError{
     Ssh,
     Sftp,
     Write,
+    ValidInput,
 
     //Convertion
     UTF8,
@@ -57,6 +58,7 @@ impl error::ResponseError for APIError{
             APIError::Script=>"103",
             APIError::Ssh=>"104",
             APIError::Sftp=>"105",
+            APIError::ValidInput=>"106",
 
             // File
             APIError::Write=>"200",
