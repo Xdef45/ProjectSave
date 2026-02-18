@@ -12,9 +12,11 @@ pub struct Logs{
 pub async fn list_log_content(uuid: &String, ssh_connexion: Arc<Session>)->Result<Logs, APIError>{
     let mut archives_content = Vec::<ArchiveContent>::new();
     let archives = list_archive(uuid, ssh_connexion.clone()).await?;
+    println!("Quel est le nom de l'archive{:?}", &archives);
     for archive_name in &archives.archives{
         archives_content.push(list_archive_content(uuid, ssh_connexion.clone(), &archive_name.archive).await?)
     }
+    println!("Quels sont le contenu de l'archive {:?}", &archives_content);
     let mut logs_path = Vec::<String>::new();
     for archive in archives_content{
         logs_path.push(get_log_filename(archive)?);
