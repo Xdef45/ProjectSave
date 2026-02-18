@@ -23,7 +23,7 @@ fi
 chmod 770 "${KEY_CLEAR}"
 chown ${CLIENT}:"${API_USER}" "${KEY_CLEAR}"
 
-if [ -z $TARGET ]; then
+if [ -z "${TARGET}" ]; then
     sudo -u "${CLIENT}" borg export-tar "${REPOSITORY_PATH}"::"${ARCHIVE}" "${RESTORE_PATH}"/"${ARCHIVE}".tar.gz
 else
     cd $RESTORE_PATH
