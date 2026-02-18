@@ -24,5 +24,5 @@ async fn get_restore(req: HttpRequest, auth: web::Data<Auth>, archive: web::Json
     let reader = TokioCompatFile::from(restore_file);
     let stream = StreamBuffer::new(reader);
     auth.delete_master_key_file(&credentials.id).await?;
-    return Ok(HttpResponse::Ok().streaming(stream))
+    return Ok(HttpResponse::Ok().append_header(("Content-Disposition", format!("attachment; filename=\"{}.tar_gz\"", archive.archive_name))).streaming(stream))
 }
