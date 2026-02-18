@@ -32,8 +32,8 @@ else
     rm -r "${TARGET}"
 fi
 
-chown "${API_USER}":"${API_USER}" "${RESTORE_PATH}"/*
-chmod 700 "${RESTORE_PATH}"/*
+chown "${CLIENT}":"${API_USER}" "${RESTORE_PATH}"/*
+chmod 770 "${RESTORE_PATH}"/*
 
 
 # option pour restore un fichier seul
