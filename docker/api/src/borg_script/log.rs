@@ -33,7 +33,7 @@ pub async fn list_log_content(uuid: &String, ssh_connexion: Arc<Session>)->Resul
 
 
 fn get_log_filename(archive: ArchiveContent, uuid: &String)->Result<String, APIError>{
-    let log_filename = format!("{}_{}_logs",archive.archive_name, uuid);
+    let log_filename = format!("{}_{}.log",archive.archive_name, uuid);
     println!("Log_file : {}", &log_filename);
     let mut log_path = None;
     for file in archive.archive_content{
