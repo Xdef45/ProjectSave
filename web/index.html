@@ -1,104 +1,156 @@
-<!doctype html>
-<html lang="fr">
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>STRONG HOLDER — Cybersecurity</title>
-    <meta name="description" content="STRONG HOLDER" />
-    <link rel="stylesheet" href="./styles.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STRONG HOLDER | Download</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-    <a class="skip-link" href="#main">Aller au contenu principal ! stp</a>
 
-    <header class="header">
-        <div class="container header__inner">
-            <a href="#" class="logo">
-                <img src="asserts/logo1.png" alt="Logo STRONG HOLDER" class="logo__img" />
-                <span class="logo__text">STRONG HOLDER</span>
-            </a>
-
-            <nav id="main-nav" class="nav" hidden>
-                <a href="#features">Bonus</a>
-                <a href="#proof">Preuve</a>
-                <a href="#connect">FAQ</a>
-                <a href="page2.html" class="btn btn--pill btn--primary">Connexion</a>
-            </nav>
+    <nav class="navbar">
+        <div class="container nav-content">
+            <div class="logo">
+                <span class="logo-icon"></span>
+                <span class="text-primary">STRONG HOLDER</span>
+            </div>
+            <a href="https://github.com/Xdef45/ProjectSave" class="nav-link">Documentation</a>
         </div>
-    </header>
+    </nav>
 
-    <main id="main">
-        <!-- HERO -->
-        <section class="section hero">
-            <div class="container">
-                <h1 class="hero__title">STRONG HOLDER</h1>
-                <div class="hero__stage">
-                    <figure class="stage__device">
-                        <img src="asserts/logo1.png" alt="Visuel STRONG HOLDER" />
-                    </figure>
+    <main class="hero">
+        <div class="container hero-layout">
+
+            <div class="hero-text">
+                <div class="badge-pill">v1.0 Available Now</div>
+                <h1>Secure your digital life with <span class="text-primary">simplicity.</span></h1>
+                <p class="subtitle">
+                    The modern, fast, and secure way to manage your backups.
+                    Clean interface, powered by strong encryption and robust architecture.
+                </p>
+
+                <div class="cta-wrapper">
+                    <div class="cta-group">
+                        <a href="https://github.com/Xdef45/ProjectSave/releases/latest/download/Strongholder_x64-setup.exe
+" class="btn-action primary big-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Download Windows
+                        </a>
+
+                        <a href="#" class="btn-action secondary big-btn" title="Soon available">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                <path d="M12 8v4"></path>
+                                <path d="M12 16h.01"></path>
+                            </svg>
+                            Download Linux
+                            (Coming Soon)
+                        </a>
+                    </div>
+                    <span class="meta-text">Current Version 1.0.0 • 64-bit Architecture</span>
                 </div>
             </div>
-        </section>
 
-        <!-- FEATURES -->
-        <section id="proof" class="section intro">
-            <div class="container intro__wrap">
-                <p class="overline">MARCO</p>
-                <h2 class="intro__title">LOL c'est trop bien.</h2>
-                <p class="intro__sub">jgl mid diff c trop chiant</p>
-            </div>
-
-            <div class="container">
-                <div class="grid cards-4">
-                    <article class="feature">
-                        <div class="feature__ico">●</div>
-                        <h3>Analyse des incidents SAN</h3>
-                        <p>Collectez des métriques détaillées sur les flux de données</p>
-                    </article>
-                    <article class="feature">
-                        <div class="feature__ico">●</div>
-                        <h3>Sécurité des accès au SAN</h3>
-                        <p>Implémentez des contrôles d’accès basés sur l’identité pour chaque hôte et chaque LUN.</p>
-                    </article>
-                    <article class="feature">
-                        <div class="feature__ico">●</div>
-                        <h3>Chiffrement des sauvegardes SAN</h3>
-                        <p>jsp quoi mettre</p>
-                    </article>
-                    <article class="feature">
-                        <div class="feature__ico">●</div>
-                        <h3>Scalabilité et fiabilité</h3>
-                        <p>Définissez des SLO clairs pour la performance des sauvegardes,</p>
-                    </article>
+            <div class="hero-visual">
+                <div class="app-frame-mockup">
+                    <div class="mockup-header">
+                        <div class="dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                    </div>
+                    <div class="mockup-body">
+                        <div class="mockup-sidebar">
+                            <div class="sidebar-item active"></div>
+                            <div class="sidebar-item"></div>
+                            <div class="sidebar-item"></div>
+                        </div>
+                        <div class="mockup-content">
+                            <div class="stats-row">
+                                <div class="mock-card">
+                                    <div class="mock-label">LAST BACKUP</div>
+                                    <div class="mock-val text-primary">Today</div>
+                                </div>
+                                <div class="mock-card">
+                                    <div class="mock-label">NEXT RUN</div>
+                                    <div class="mock-val">Tomorrow</div>
+                                </div>
+                            </div>
+                            <div class="details-row">
+                                <div class="mock-detail-card">
+                                    <div class="mock-big-num text-added">+124</div>
+                                </div>
+                                <div class="mock-detail-card">
+                                    <div class="mock-big-num text-modified">42</div>
+                                </div>
+                                <div class="mock-detail-card">
+                                    <div class="mock-big-num text-deleted">-12</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                <div class="glow-effect"></div>
             </div>
-        </section>
-
-        <!-- SHOWCASE -->
-        <section class="section showcase">
-            <div class="container">
-                <figure class="showcase__panel">
-                    <img src="asserts/rm380-02.jpg" alt="Texture hexagonale STRONG HOLDER" />
-                </figure>
-            </div>
-        </section>
+        </div>
     </main>
 
-    <!-- FOOTER -->
-    <footer class="footer">
-        <div class="container footer__grid">
-            <nav class="footer__nav">
-                <a href="#features">droit</a>
-                <a href="#proof">Proof</a>
-                <a href="#connect">Connexion</a>
-            </nav>
-            <small>ooooo <span id="y"></span> STRONG HOLDER — </small>
+    <section class="features">
+        <div class="container grid-3">
+            <div class="feature-card">
+                <div class="icon-box bg-primary-light">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
+                        stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </div>
+                <h3>Lightning Fast</h3>
+                <p>Built with performance in mind. No bloat, just speed.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon-box bg-added-light">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--status-added)"
+                        stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                </div>
+                <h3>Fully Secured</h3>
+                <p>Your data is encrypted locally before it ever leaves your device.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon-box bg-modified-light">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--status-modified)"
+                        stroke-width="2">
+                        <path
+                            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                        </path>
+                    </svg>
+                </div>
+                <h3>Modern Design</h3>
+                <p>A clean, intuitive interface that supports both Light and Dark modes.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Strongholder. All rights reserved.</p>
         </div>
     </footer>
 
-    <!-- 👇 Script Electron Renderer -->
-    <script src="./index.js"></script>
 </body>
 
 </html>
