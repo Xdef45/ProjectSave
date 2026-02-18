@@ -70,7 +70,10 @@ fn extract_log_archive(archive: &mut Archives){
 }
 
 fn get_log_filename(archive: ArchiveContent, uuid: &String)->Result<String, APIError>{
-    let log_filename = format!("{}_{}.log",archive.archive_name, uuid);
+    let Some((first_part, _)) =  archive.archive_name.split_at_checked(archive.archive_name.len()-5) else{
+        return Err(APIError::Script);
+    };
+    let log_filename = format!("{}_{}.log",first_part, uuid);
     println!("Log_file : {}", &log_filename);
     let mut log_path = None;
     for file in archive.archive_content{
