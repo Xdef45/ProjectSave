@@ -88,6 +88,10 @@ pub async fn restore_file(uuid: &String, archive: &String, file_name:&String, ss
     };
     if ! output.status.success(){
         println!("Erreur lors du restore\nstdout {}\n stderr: {}", &stdout, &stderr);
+        if let Some(code) = output.status.code(){
+            println!("Erreur code {}", code);
+        }
+        
         return Err(APIError::Script)
     }
     let file_restore_path = format!("{}/{}/restore/{}",CLIENT_DIRECTORY, uuid, file_name);
