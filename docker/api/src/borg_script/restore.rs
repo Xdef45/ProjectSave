@@ -21,11 +21,15 @@ pub async fn dertermining_restore_mode(uuid: &String, body: &String, ssh_connexi
         Err(_)=>{
             let restore_archive_name :Restore = match serde_json::from_str(body.as_str()){
                 Ok(restore)=>restore,
-                Err(_)=>return Err(APIError::ValidInput)
+                Err(_)=>{
+                    println!("erreur determining");
+                    return Err(APIError::ValidInput)}
             };
+            println!("c'est restore");
             return Ok((restore(&uuid, &restore_archive_name.archive_name, ssh_connexion.clone(), sftp_connexion.clone()).await?, format!("{}.tar.gz", restore_archive_name.archive_name)))
         }
     };
+    println!("c'est restore_file");
     return Ok((restore_file(&uuid, &restore_file_name.archive_name, &restore_file_name.file_name, ssh_connexion.clone(), sftp_connexion.clone()).await?, restore_file_name.file_name))
     
 }

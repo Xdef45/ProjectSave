@@ -19,8 +19,9 @@ async fn get_restore(req: HttpRequest, auth: web::Data<Auth>, body: String)-> Re
     if body.len() == 0{
         return Err(APIError::ValidInput)
     }
-
+    println!("{}" , &body);
     let (file, file_name) = dertermining_restore_mode(&credentials.id, &body, auth.ssh_connexion.clone(), auth.sftp_connexion.clone()).await?;
+    println!("{}", &file_name);
     auth.delete_master_key_file(&credentials.id).await?;
     let reader = TokioCompatFile::from(file);
         let stream = StreamBuffer::new(reader);
