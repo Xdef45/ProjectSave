@@ -36,6 +36,7 @@ pub async fn list_log_content(uuid: &String, ssh_connexion: Arc<Session>)->Resul
     let mut archives_content = Vec::<ArchiveContent>::new();
     let mut archives = list_archive(uuid, ssh_connexion.clone()).await?;
     extract_log_archive(&mut archives);
+    println!("{:?}", archives);
     for archive_name in &archives.archives{
         archives_content.push(list_archive_content(uuid, ssh_connexion.clone(), &archive_name.archive).await?)
     }
@@ -61,7 +62,6 @@ fn extract_log_archive(archive: &mut Archives){
         let Some((_,log)) = filename.split_at_checked(filename.len()-5)else {
             continue;
         };
-        println!("archive log : {}", &log);
         if log != "_logs"{
             archive.archives.remove(i);
         }
