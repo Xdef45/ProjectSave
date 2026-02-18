@@ -92,7 +92,7 @@ pub async fn restore_file(uuid: &String, archive: &String, file_name:&String, ss
             println!("Erreur code {}", code);
         }
         
-        return Err(APIError::Script)
+        return Err(APIError::NoFile)
     }
     let file_restore_path = format!("{}/{}/restore/{}",CLIENT_DIRECTORY, uuid, file_name);
     match sftp_connexion.open(file_restore_path).await{
