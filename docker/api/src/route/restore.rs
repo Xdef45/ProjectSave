@@ -20,8 +20,9 @@ async fn get_restore(req: HttpRequest, auth: web::Data<Auth>, archive: web::Json
 
     let credentials=Auth::decode_token(cookie.value())?;
     let _ = auth.restore_master_key_2_file(&credentials).await?;
-    let restore_file = restore(credentials.id, archive.archive_name.clone(), auth.ssh_connexion.clone(), auth.sftp_connexion.clone()).await?;
+    let restore_file = restore(credentials.id.clone(), archive.archive_name.clone(), auth.ssh_connexion.clone(), auth.sftp_connexion.clone()).await?;
     let reader = TokioCompatFile::from(restore_file);
     let stream = StreamBuffer::new(reader);
+    auth.delete_master_key_file(&credentials.id).await?;
     return Ok(HttpResponse::Ok().streaming(stream))
 }

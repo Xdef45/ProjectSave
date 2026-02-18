@@ -6,12 +6,12 @@ use crate::error::APIError;
 
 #[derive(Serialize, Deserialize)]
 pub struct ArchiveData{
-    archive: String,
-    time: String
+    pub archive: String,
+    pub time: String
 }
 #[derive(Serialize, Deserialize)]
 pub struct Archives{
-    archives: Vec<ArchiveData>
+    pub archives: Vec<ArchiveData>
 }
 
 pub async fn list_archive(uuid: &String, ssh_connexion: Arc<Session>,)->Result<Archives, APIError>{
@@ -44,18 +44,19 @@ pub async fn list_archive(uuid: &String, ssh_connexion: Arc<Session>,)->Result<A
 
 #[derive(Serialize, Deserialize)]
 pub struct ArchiveContent{
-    archive_content: Vec<ArchiveFile>
+    pub archive_name: String,
+    pub archive_content: Vec<ArchiveFile>
 }
 #[derive(Serialize, Deserialize)]
 pub struct ArchiveFile{
     r#type: String,
-    path: String,
+    pub path: String,
     mtime: String,
     size:u64
 }
 
 
-pub async fn list_archive_content(uuid: &String, ssh_connexion: Arc<Session>, archive_name:String)->Result<ArchiveContent, APIError>{
+pub async fn list_archive_content(uuid: &String, ssh_connexion: Arc<Session>, archive_name:&String)->Result<ArchiveContent, APIError>{
     let output = match ssh_connexion.command("sudo").args([String::from("/usr/local/sbin/list.sh"), uuid.to_string(), archive_name.clone()]).output().await{
         Ok(o)=>o,
         Err(_)=>{println!("connexion ssh erreur");return Err(APIError::Ssh)}
@@ -93,5 +94,5 @@ pub async fn list_archive_content(uuid: &String, ssh_connexion: Arc<Session>, ar
         archive_content.push(archive_file);
     }
 
-    return Ok(ArchiveContent{archive_content: archive_content})
+    return Ok(ArchiveContent{archive_name: archive_name.to_string(), archive_content: archive_content})
 }

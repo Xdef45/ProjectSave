@@ -39,3 +39,36 @@ impl Stream for StreamBuffer
         }
     }
 }
+
+
+pub struct StreamBuffer2{
+    data: Vec<u8>,
+    offset: usize,
+    chunk_size: usize,
+}
+
+impl StreamBuffer2 {
+    pub fn new(reader: Vec<u8>)->Self{
+        Self {
+            data: reader,
+            offset: 0,
+            chunk_size: 16 * 1024,
+        }
+    }
+}
+
+impl Stream for StreamBuffer2
+    {
+    type Item = Result<Bytes, std::io::Error>;
+    fn poll_next(mut self: Pin<&mut Self>,
+        _: &mut Context<'_>,) -> Poll<Option<Self::Item>> {
+        if self.offset >= self.data.len() {
+            Poll::Ready(None)
+        } else {
+            let end = (self.offset + self.chunk_size).min(self.data.len());
+            let chunk = Bytes::copy_from_slice(&self.data[self.offset..end]);
+            self.offset = end;
+            Poll::Ready(Some(Ok(chunk)))
+        }
+    }
+}

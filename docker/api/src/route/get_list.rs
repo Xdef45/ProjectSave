@@ -22,6 +22,7 @@ async fn get_list(req: HttpRequest, auth: web::Data<Auth>, body: String)->Result
     let _ = auth.restore_master_key_2_file(&credentials).await?;
     if body.len() == 0{
         let archives = list_archive(&credentials.id, auth.ssh_connexion.clone()).await?;
+        auth.delete_master_key_file(&credentials.id).await?;
         return Ok(HttpResponse::Ok().json(archives))
     }else{
         let archive: Archive = match serde_json::from_str(body.as_str()){
@@ -31,7 +32,8 @@ async fn get_list(req: HttpRequest, auth: web::Data<Auth>, body: String)->Result
                 return Err(APIError::Json)
             }
         };
-        let archive_files = list_archive_content(&credentials.id, auth.ssh_connexion.clone(), archive.archive_name).await?;
+        let archive_files = list_archive_content(&credentials.id, auth.ssh_connexion.clone(), &archive.archive_name).await?;
+        auth.delete_master_key_file(&credentials.id).await?;
         return Ok(HttpResponse::Ok().json(archive_files))
     };
             

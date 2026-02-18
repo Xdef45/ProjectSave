@@ -9,6 +9,7 @@ members = []
 [dependencies]
 actix-files = "0.6"
 actix-multipart = "0.7.2"
+aes-gcm = "0.10.3"
 argon2 = "0.5.3"
 bytes = "1.11.1"
 derive_more = "2.1.1"
