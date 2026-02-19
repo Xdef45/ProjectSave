@@ -117,7 +117,7 @@ Une fois l'utilisateur authentifier avec son cookie, on lui envoie sous forme de
 Cookie Bearer=<JWT_Token>
 ```
 ## Output
-Type: ```application/octet stream```
+Type: ```application/octet-stream```
 ```
 <repot_key_encrypted>
 ```
@@ -181,7 +181,16 @@ pour lister le contenu des archive
 Type: ```application/json```
 ```
 {
-    "archives": []
+    "archives": [
+        {
+            "archive": "2026-02-18_11-43-46",
+            "time": "2026-02-18T10:43:50.000000"
+        },
+        {
+            "archive": "2026-02-18_11-43-46_logs",
+            "time": "2026-02-18T10:44:01.000000"
+        },
+    ]
 }
 ```
 ou avec archive_name spécifier
@@ -213,10 +222,21 @@ Cookie Bearer=<JWT_Token>
     archive_name: <archive_name>
 }
 ```
+ou pour retourner que un fichier
+```
+{
+    "archive_name": "2026-02-18_16-36-55",
+    "file_name": "mnt/d/ACBF Remake/Audio2.m4a"
+}
+```
 ## output
 Type: ```application/octet-stream```
 ```
 <archive>.tar.gz
+```
+ou
+```
+<file_name>
 ```
 
 # api/get_log
