@@ -1,5 +1,5 @@
 use openssh::Session;
-use std::{os::unix::fs::FileExt, sync::Arc};
+use std::sync::Arc;
 use crate::error::APIError;
 use openssh_sftp_client::{file::File, Sftp};
 const CLIENT_DIRECTORY: &str = "/srv/repos";

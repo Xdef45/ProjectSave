@@ -1,6 +1,6 @@
 use actix_web::{post, HttpResponse, HttpRequest,http::header::{ContentDisposition, DispositionType, DispositionParam}, web};
 use crate::authentification::auth::Auth;
-use crate::borg_script::restore::{restore, restore_file, dertermining_restore_mode};
+use crate::borg_script::restore::dertermining_restore_mode;
 use crate::error::APIError;
 use crate::stream_http::stream_http::StreamBuffer;
 use openssh_sftp_client::file::TokioCompatFile;
