@@ -1,5 +1,5 @@
 use openssh::Session;
-use std::sync::Arc;
+use std::{os::unix::fs::FileExt, sync::Arc};
 use crate::error::APIError;
 use openssh_sftp_client::{file::File, Sftp};
 const CLIENT_DIRECTORY: &str = "/srv/repos";
@@ -26,7 +26,9 @@ pub async fn dertermining_restore_mode(uuid: &String, body: &String, ssh_connexi
                     return Err(APIError::ValidInput)}
             };
             println!("c'est restore");
-            return Ok((restore(&uuid, &restore_archive_name.archive_name, ssh_connexion.clone(), sftp_connexion.clone()).await?, format!("{}.tar.gz", restore_archive_name.archive_name)))
+            let file_name_only: Vec<&str> = restore_archive_name.archive_name.split("\\").collect();
+            let file_name_only = file_name_only[file_name_only.len()-1];
+            return Ok((restore(&uuid, &restore_archive_name.archive_name, ssh_connexion.clone(), sftp_connexion.clone()).await?, format!("{}.tar.gz", file_name_only)))
         }
     };
     println!("c'est restore_file");
@@ -68,7 +70,7 @@ pub async fn restore(uuid: &String, archive:&String, ssh_connexion: Arc<Session>
 }
 
 pub async fn restore_file(uuid: &String, archive: &String, file_name:&String, ssh_connexion: Arc<Session>, sftp_connexion: Arc<Sftp>)->Result<File, APIError>{
-    let output = match ssh_connexion.command("sudo").args(["/usr/local/sbin/restore.sh", uuid, archive, file_name]).output().await{
+    let output = match ssh_connexion.command("sudo").args(["/usr/local/sbin/restore.sh", uuid, archive, &format!("\"{}\"",file_name)]).output().await{
         Ok(o)=>o,
         Err(_)=>{println!("Erreur ssh command restore");return Err(APIError::Ssh)}
     };
@@ -94,7 +96,10 @@ pub async fn restore_file(uuid: &String, archive: &String, file_name:&String, ss
         
         return Err(APIError::NoFile)
     }
-    let file_restore_path = format!("{}/{}/restore/{}",CLIENT_DIRECTORY, uuid, file_name);
+    let file_name_only: Vec<&str> = file_name.split("\\").collect();
+    let file_name_only = file_name_only[file_name_only.len()-1];
+    println!("{}",&file_name_only);
+    let file_restore_path = format!("{}/{}/restore/{}",CLIENT_DIRECTORY, uuid, file_name_only);
     match sftp_connexion.open(file_restore_path).await{
         Ok(f)=>return Ok(f),
         Err(_)=>{
