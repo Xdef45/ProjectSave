@@ -96,7 +96,7 @@ pub async fn restore_file(uuid: &String, archive: &String, file_name:&String, ss
         
         return Err(APIError::NoFile)
     }
-    let file_name_only: Vec<&str> = file_name.split("\\").collect();
+    let file_name_only: Vec<&str> = file_name.split("/").collect();
     let file_name_only = file_name_only[file_name_only.len()-1];
     println!("{}",&file_name_only);
     let file_restore_path = format!("{}/{}/restore/{}",CLIENT_DIRECTORY, uuid, file_name_only);
