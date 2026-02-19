@@ -20,8 +20,10 @@ TUNNEL_KEY="${SSH_DIR}/borg_${CLIENT_ID}_tunnel_key"
 BORG_KEY="${SSH_DIR}/borg_${CLIENT_ID}_key"
 
 # Dossiers client (doivent exister avant les backups)
+BORG_DIR="${USER_HOME}/.config/borg"
 BORG_KEYS_DIR="${USER_HOME}/.config/borg/keys"
 LOCAL_SSH_DIR="${USER_HOME}/.ssh"
+LOG_DIRECTORY="$HOME/.config/borg/logs"
 
 SUDOERS_FILE="/etc/sudoers.d/borghelper"
 
@@ -31,8 +33,11 @@ apt-get update -y
 apt-get install -y --no-install-recommends \
   borgbackup gpg openssh-server ca-certificates
 
-echo "[prepclient] Ensure borg keys dir exists" 
+echo "[prepclient] Ensure borg directories exists" 
+install -d -m 0700 -o "${CLIENT_USER}" -g "${CLIENT_USER}" "${BORG_DIR}"
 install -d -m 0700 -o "${CLIENT_USER}" -g "${CLIENT_USER}" "${BORG_KEYS_DIR}"
+install -d -m 0700 -o "${CLIENT_USER}" -g "${CLIENT_USER}" "${LOG_DIRECTORY}"
+
 
 echo "[prepclient] Ensure ${CLIENT_USER} ssh dir exists"
 install -d -m 0700 -o "${CLIENT_USER}" -g "${CLIENT_USER}" "${LOCAL_SSH_DIR}"
