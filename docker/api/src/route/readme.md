@@ -122,7 +122,6 @@ Type: ```application/json``` | method: ```post```
 # /api/send_ssh_key
 Une fois l'utilisateur authentifier avec son cookie, il nous envoie sa clé ssh publique sous forme d'un fichier,on lui renvoie un status OK.
 ## Input
-### Header
 ```
 Cookie Bearer=<JWT_Token>
 ```
@@ -187,7 +186,6 @@ ou avec archive_name spécifier
 ```
 # /api/get_restore
 ## input
-Type: ```Header```
 ```
 Cookie Bearer=<JWT_Token>
 ```
@@ -215,7 +213,6 @@ ou
 
 # api/get_log
 ## input
-### Header
 ```
 Cookie Bearer=<JWT_Token>
 ```
