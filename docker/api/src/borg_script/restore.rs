@@ -70,7 +70,7 @@ pub async fn restore(uuid: &String, archive:&String, ssh_connexion: Arc<Session>
 }
 
 pub async fn restore_file(uuid: &String, archive: &String, file_name:&String, ssh_connexion: Arc<Session>, sftp_connexion: Arc<Sftp>)->Result<File, APIError>{
-    let output = match ssh_connexion.command("sudo").args(["/usr/local/sbin/restore.sh", uuid, archive, &format!("\"{}\"",file_name)]).output().await{
+    let output = match ssh_connexion.command("sudo").args(["/usr/local/sbin/restore.sh", uuid, archive, &file_name]).output().await{
         Ok(o)=>o,
         Err(_)=>{println!("Erreur ssh command restore");return Err(APIError::Ssh)}
     };
