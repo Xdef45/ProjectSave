@@ -1,6 +1,5 @@
-use futures_core::stream::Stream;
+use futures_core::{stream::Stream, task::{Poll, Context}};
 use tokio::io::{AsyncRead,ReadBuf};
-use futures_util::task::{Poll, Context};
 use std::pin::Pin;
 use bytes::Bytes;
 use openssh_sftp_client::file::TokioCompatFile;
@@ -8,12 +7,12 @@ use openssh_sftp_client::file::TokioCompatFile;
 
 pub struct StreamBuffer{
     reader: Pin<Box<TokioCompatFile>>,
-    buf: [u8; 16*1024]
+    buf: [u8; 32*1024]
 }
 
 impl StreamBuffer {
     pub fn new(reader: TokioCompatFile )->Self{
-        Self{reader:Box::pin(reader), buf: [0u8;16*1024]}
+        Self{reader:Box::pin(reader), buf: [0u8;32*1024]}
     }
 }
 
@@ -52,7 +51,7 @@ impl StreamBuffer2 {
         Self {
             data: reader,
             offset: 0,
-            chunk_size: 16 * 1024,
+            chunk_size: 32 * 1024,
         }
     }
 }
