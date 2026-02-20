@@ -34,6 +34,7 @@ Elle est composé de:
 - 32Go ram
 - 1,5To de stockage ssd
 - 1,5To de stockage externe (sauvegarde)
+- 2.5GbE Interface 
 
 Il servira à virtualisé une infrastructure redondante. C'est pour nous mettre dans un environnement redondant sans dépense trop d'argent
 ### Niveau 2
