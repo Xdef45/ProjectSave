@@ -27,7 +27,7 @@ Ce projet consiste en une solution de sauvegarde de fichiers sécurisée. Un uti
 L'infrastructure fonctionne en plusieurs étages :
 ### Niveau 1
 ![etage infra](/documentations%20des%20outils/images/infra%20niveau%201.png)
-Le premier niveau correspond au machine physique qui est un hypervieur Proxmox héberger chez l'un de nos collaborateur du projet.
+Le premier niveau correspond à machine physique qui est un hyperviseur Proxmox hébergé chez l'un de nos collaborateurs du projet.
 
 Elle est composé de:
 - 20 coeurs
