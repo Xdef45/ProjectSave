@@ -21,7 +21,7 @@
 
 ## 2. Description du projet
 
-Ce projet consiste en une solution de sauvegarde de fichiers sécurisée. Un utilisateur peut depuis une interface web/application sauvegarder ses fichiers en toute sécurité de n'importe où. Chaque utilisateur possède donc un compte qui lui permet d'intéragir avec ses sauvegardes et d'en créer des nouvelles. 
+Ce projet consiste en une solution de sauvegarde chiffrée de fichiers sécurisée. Un utilisateur peut depuis une interface web/application sauvegarder ses fichiers en toute sécurité de n'importe où. Chaque utilisateur possède donc un compte qui lui permet d'intéragir avec ses sauvegardes et d'en créer des nouvelles. 
 
 ## 3. Infrastructure
 L'infrastructure fonctionne en plusieurs étages :
@@ -45,7 +45,7 @@ Il s'agit de l'infrastructure physique virtualisé par le Proxmox du niveau. Pou
 ---------|----|---------------|---------------| ---------|-----------------
 Pfsense | Pfsense | 2 | 2Go | **D1:** 30Go 32Go | 3
 Ceph | Ubuntu | 2 | 2Go | **D1:** 30Go ; **D2:** 250Go | 1
-Proxmox | Proxmox | 10 | 10Go | **D1:** 30Go | 1
+Proxmox | Proxmox | 10 | 10Go | **D1:** 100Go | 1
 Supervision | Debian | 4 | 4Go | **D1:** 150Go | 1
 
 ### Niveau 3

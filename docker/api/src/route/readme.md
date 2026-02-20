@@ -117,7 +117,7 @@ Type: ```application/json``` | method: ```post```
 }
 ```
 ## Output
-```status code:``` 200
+Status code: ```200```
 
 # /api/send_ssh_key
 Une fois l'utilisateur authentifier avec son cookie, il nous envoie sa clé ssh publique sous forme d'un fichier,on lui renvoie un status OK.

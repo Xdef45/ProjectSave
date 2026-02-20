@@ -32,6 +32,8 @@ pub enum APIError{
     MajusculeMissing,
     /// Pas de chiffre
     NumberMissing,
+    UsernameTooLong,
+    PasswordTooLong,
 
     //Login
     NotSignup,
@@ -76,6 +78,8 @@ impl error::ResponseError for APIError{
             APIError::SpecialCharMissing=>"5",
             APIError::MajusculeMissing=>"6",
             APIError::NumberMissing=>"7",
+            APIError::UsernameTooLong=>"8",
+            APIError::PasswordTooLong=>"9",
 
             // Login
             APIError::NotSignup=>"0",

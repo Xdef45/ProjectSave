@@ -7,9 +7,6 @@ version = "0.0.1"
 members = []
 
 [dependencies]
-actix-files = "0.6"
-aes-gcm = "0.10.3"
-argon2 = "0.5.3"
 bytes = "1.11.1"
 derive_more = "2.1.1"
 futures-core = "0.3.31"
@@ -20,6 +17,7 @@ passcheck = "0.2.0"
 serde = "1.0.228"
 serde_json = "1.0.149"
 tokio = { version = "1.49.0", features = ["fs", "io-util", "macros", "process", "rt-multi-thread"] }
+openssl = { version = "0.10.75", features = ["vendored"] }
 
 [dependencies.actix-web]
 version = "=4.12.1"
@@ -28,10 +26,6 @@ features = ["cookies"]
 [dependencies.jsonwebtoken]
 version = "10.2.0"
 features = ["aws_lc_rs"]
-
-[dependencies.openssl]
-version = "0.10"
-features = ["vendored"]
 
 [dependencies.sqlx]
 version = "0.8.6"

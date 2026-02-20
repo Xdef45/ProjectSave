@@ -2,11 +2,7 @@ use sqlx::{mysql, MySqlPool};
 use jsonwebtoken::{encode, decode, Header, Algorithm, Validation, EncodingKey, DecodingKey, get_current_timestamp};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use aes_gcm::{
-    aead::{Aead, AeadCore, KeyInit, OsRng},
-    Aes256Gcm, Nonce, Key // Or `Aes128Gcm`
-};
-use argon2::{Argon2, Params};
+use openssl::{kdf, rand::rand_bytes, symm::{Cipher, Crypter, Mode}};
 use std::env;
 use jsonwebtoken::errors::ErrorKind;
 use passcheck::PasswordChecker;
@@ -74,8 +70,10 @@ impl Auth {
         })
         .username(&env::var("DB_USER").expect("DB_USER inexistant"))
         .database(&env::var("DB").expect("DB inexistant"));
-        let session_ssh = Session::connect_mux("ssh://borg", KnownHosts::Add).await.expect("Impossible de se connecter au serveur ssh");
-        let session_sftp = Session::connect_mux("ssh://borg", KnownHosts::Add).await.expect("Impossible de se connecter au serveur ssh");
+        let session_ssh = Session::connect_mux("ssh://borg", KnownHosts::Add)
+        .await.expect("Impossible de se connecter au serveur ssh");
+        let session_sftp = Session::connect_mux("ssh://borg", KnownHosts::Add)
+        .await.expect("Impossible de se connecter au serveur ssh");
         Self{
             db: MySqlPool::connect_with(opt).await.expect("Impossible de se connecter à la DB"),
             ssh_connexion: Arc::new(session_ssh),
@@ -85,8 +83,10 @@ impl Auth {
     pub async fn signup(&self, login: Login) -> Result<String, APIError> {
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
         /* Vérification si l'utilisateur existe */
-        let query = sqlx::query("SELECT username FROM Credentials WHERE username=?").bind(login.username.as_str());
-        let number_return_line: Vec<mysql::MySqlRow> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
+        let query = sqlx::query("SELECT username FROM Credentials WHERE username=?")
+        .bind(login.username.as_str());
+        let number_return_line: Vec<mysql::MySqlRow> = query.fetch_all(&mut *conn)
+        .await.expect("Une erreur c'est produite");
         if number_return_line.len() > 0 {
             return Err(APIError::AlreadyExist);
         }
@@ -112,15 +112,23 @@ impl Auth {
         let _ = create_user::create_user(&uuid, self.ssh_connexion.clone()).await?;
 
         // Récupération de la clé borg 1
-        let master_key_1_encrypted = create_user::get_master_key_1_encrypted(&uuid, self.ssh_connexion.clone(), self.sftp_connexion.clone()).await?;
+        let master_key_1_encrypted = create_user::get_master_key_1_encrypted(
+            &uuid, 
+            self.ssh_connexion.clone(), 
+            self.sftp_connexion.clone()
+        ).await?;
         // Récupérationd de la clé borg 2
-        let master_key_2 = create_user::get_master_key_2(&uuid, self.ssh_connexion.clone(), self.sftp_connexion.clone()).await?;
+        let master_key_2 = create_user::get_master_key_2(
+            &uuid, 
+            self.ssh_connexion.clone(), 
+            self.sftp_connexion.clone()
+        ).await?;
 
         // chiffrement de la clé borg 1
-        let key_1_encrypted: String = self.encrypt_key_1(&kdf_client, master_key_1_encrypted)?;
+        let key_1_encrypted: String = self.encrypt_key(&kdf_client, master_key_1_encrypted)?;
 
         // chiffrement de la clé borg 2
-        let key_2_encrypted: String = self.encrypt_key_2(&kdf_client, master_key_2)?;
+        let key_2_encrypted: String = self.encrypt_key(&kdf_client, master_key_2.as_bytes().to_vec())?;
 
         if key_1_encrypted.len()>1200{
             println!("Erreur longueur de clé borg 1 encrypted signup: {}", key_1_encrypted.len());
@@ -132,7 +140,8 @@ impl Auth {
         }
 
         /* Ajout de l'utilisateur dans la base de données */
-        let query = sqlx::query("INSERT INTO Credentials (id , username, encrypt_master_key_1, encrypt_master_key_2) VALUES(?,?,?,?)")
+        let query = sqlx::query("INSERT INTO Credentials \
+        (id , username, encrypt_master_key_1, encrypt_master_key_2) VALUES(?,?,?,?)")
         .bind(&uuid)
         .bind(login.username.as_str())
         .bind(key_1_encrypted)
@@ -140,55 +149,79 @@ impl Auth {
         let _ = query.execute(&mut *conn).await.expect("l'utilisateur n'a pas pu être enregistrer");
         
         /* Renvoyer le cookie JWT */
-        let credentials = Credentials{exp: get_current_timestamp() + EXPIRE_TIME, id:uuid, kdf:hex::encode(kdf_client)};
+        let credentials = Credentials{
+            exp: get_current_timestamp() + EXPIRE_TIME, 
+            id:uuid, 
+            kdf:hex::encode(kdf_client)
+        };
         match self.create_token(&credentials){
             Ok(token)=>return Ok(token),
             Err(e)=>return Err(e)
         };
     }
 
-    pub fn encrypt_key_1(&self, kdf_client:&[u8], master_key: Vec<u8>) -> Result<String, APIError>{
+    fn encrypt_key(&self, kdf_client:&[u8], master_key: Vec<u8>)->Result<String, APIError>{
         /*Chiffrement clé_master_2 */
-
-        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&kdf_client));
-        
-        let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
-        match cipher.encrypt(&nonce,master_key.as_ref()){
-            Ok(o)=>{
-                let mut encrypted_with_nonce = Vec::with_capacity(nonce.len() + o.len());
-                encrypted_with_nonce.extend_from_slice(nonce.as_slice());
-                encrypted_with_nonce.extend_from_slice(&o);
-                return Ok(hex::encode(encrypted_with_nonce))
-            },
-            Err(e)=>{
-                println!("Erreur lors de la création de la clé KDF: {}", e.to_string());
+        const GCM_TAG_LEN: usize = 16;
+        let mut iv = [0u8; 12];
+        let _ = match rand_bytes(&mut iv){
+            Ok(_)=>(),
+            Err(_)=>{
+                println!("Erreur lors de la génération aléatoire du iv");
                 return Err(APIError::KDFError)
             }
         };
-    }
 
-    pub fn encrypt_key_2(&self, kdf_client:&[u8], master_key: String) -> Result<String, APIError>{
-        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&kdf_client));
-        
-          let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
-        match cipher.encrypt(&nonce,master_key.as_ref()){
-            Ok(o)=>{
-                let mut encrypted_with_nonce = Vec::with_capacity(nonce.len() + o.len());
-                encrypted_with_nonce.extend_from_slice(nonce.as_slice());
-                encrypted_with_nonce.extend_from_slice(&o);
-                return Ok(hex::encode(encrypted_with_nonce))
-            },
-            Err(e)=>{
-                println!("Erreur lors de la création de la clé KDF: {}", e.to_string());
+        let mut cipher = match Crypter::new(
+            Cipher::aes_256_gcm(), 
+            Mode::Encrypt, 
+            kdf_client, 
+            Some(&iv)
+        ){
+            Ok(cipher)=>cipher,
+            Err(_)=>{
+                println!("Erreur lors que la création du cypher");
                 return Err(APIError::KDFError)
             }
         };
+        let mut ciphertext = vec![0u8; master_key.len()+Cipher::aes_256_gcm().block_size()];
+        let mut len_encrypted_data = match cipher.update(&master_key, &mut ciphertext){
+            Ok(len)=>len,
+            Err(_)=>{
+                println!("Erreur lors de l'encryption de la clé");
+                return Err(APIError::KDFError)
+            }
+        };
+        len_encrypted_data += match cipher.finalize(&mut ciphertext[len_encrypted_data..]){
+            Ok(len)=>len,
+            Err(_)=>{
+                println!("Erreur lors de la finalisation du chiffrement key_1");
+                return Err(APIError::KDFError)
+            }
+        };
+        let mut tag = [0u8; GCM_TAG_LEN];
+        let _ = match cipher.get_tag(&mut tag){
+            Ok(_)=>(),
+            Err(_)=>{
+                println!("Erreur lors de la récupération du tag GCM key_1");
+                return Err(APIError::KDFError)
+            }
+        };
+        ciphertext.truncate(len_encrypted_data);
+        let mut final_encrypt = Vec::with_capacity(len_encrypted_data + iv.len() + GCM_TAG_LEN);
+        final_encrypt.extend_from_slice(&iv);
+        final_encrypt.extend_from_slice(&tag);
+        final_encrypt.extend_from_slice(&ciphertext);
+        let hex = hex::encode(final_encrypt);
+
+        return Ok(hex)
     }
 
     pub async fn signin(&self, login:Login) -> Result<String, APIError>{
         /* Récupération clé master 2 */
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
-        let query = sqlx::query_as("SELECT id, encrypt_master_key_1, encrypt_master_key_2 FROM Credentials WHERE username=?").bind(login.username.as_str());
+        let query = sqlx::query_as("SELECT id, encrypt_master_key_1, \
+        encrypt_master_key_2 FROM Credentials WHERE username=?").bind(login.username.as_str());
         let result: Vec<MysqlCredentials> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
 
         /* Vérification si l'utilisateur existe */
@@ -205,7 +238,11 @@ impl Auth {
             }
         };
         /* Renvoyer le cookie JWT */
-        let credentials = Credentials{exp: (get_current_timestamp() + EXPIRE_TIME), id:result[0].id.clone(), kdf:hex::encode(kdf_client)};
+        let credentials = Credentials{
+            exp: (get_current_timestamp() + EXPIRE_TIME), 
+            id:result[0].id.clone(), 
+            kdf:hex::encode(kdf_client)
+        };
         let _ = match self.decrypt_master_2_key(&credentials).await{
             Ok(_)=>(),
             Err(e)=>return Err(e)
@@ -219,12 +256,18 @@ impl Auth {
     }
     fn validation_login(login: &Login)->Option<APIError>{
         let checker= PasswordChecker::<'static>::new()
-        .min_length(12, Some("12"))  // Use default error message with None OR use Some(str) for use custom message
-        .require_upper_lower(Some("A")) // Custom message
-        .require_number(Some("1")) // Custom message
-        .require_special_char(Some("@")); // Custom message
+        .min_length(12, Some("12"))
+        .require_upper_lower(Some("A")) 
+        .require_number(Some("1"))
+        .require_special_char(Some("@"));
         if login.username.len() < 3{
             return Some(APIError::UsernameTooShort);
+        }
+        if login.username.len() > 255{
+            return Some(APIError::UsernameTooLong);
+        }
+        if login.password.len() > 255{
+            return Some(APIError::PasswordTooLong);
         }
         match checker.validate(login.password.as_str()) {
             Ok(_)=> return None,
@@ -253,10 +296,12 @@ impl Auth {
     }
 
     pub async fn restore_master_key_2_file(&self, credentials: &Credentials)-> Result<(),APIError>{
-        let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY, credentials.id, credentials.id);
+        let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", 
+        CLIENT_DIRECTORY, credentials.id, credentials.id);
 
         //Vérification de la présence de la clé
-        let output = match self.ssh_connexion.command("test").args(["-f", filename.as_str()]).output().await{
+        let output = match self.ssh_connexion.command("test")
+        .args(["-f", filename.as_str()]).output().await{
             Ok(o)=>o,
             Err(_)=>{println!("Erreur connexion sshrestore_master_2_file");return Err(APIError::Ssh)}
         };
@@ -275,7 +320,8 @@ impl Auth {
             }
         };
         if output.status.success(){
-            println!("Erreur la clé borg existe déjà restore_master_2_file : \nStdout: {}\nErreur: {}", stdout, stderr);
+            println!("Erreur la clé borg existe déjà restore_master_2_file : \
+             \nStdout: {}\nErreur: {}", stdout, stderr);
             return Ok(())//Err(APIError::Script)
         }
         // Déchiffrement de la clé Borg
@@ -297,65 +343,74 @@ impl Auth {
     pub async fn decrypt_master_1_key(&self, credentials: &Credentials)-> Result<Vec<u8>,APIError>{ 
         /* Récupération clé master 2 */
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
-        let query = sqlx::query_as("SELECT id, encrypt_master_key_1, encrypt_master_key_2  FROM Credentials WHERE id=?").bind(credentials.id.as_str());
+        let query = sqlx::query_as("SELECT id, encrypt_master_key_1, \
+        encrypt_master_key_2  FROM Credentials WHERE id=?").bind(credentials.id.as_str());
         let result: Vec<MysqlCredentials> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
         if result.len() != 1 {
             println!("L'utilisateur {} n'est pas connue dans la base de données", credentials.id);
             return Err(APIError::NotSignup);
         }
         // Déchiffrement de la clé
-        //(master_key.len() + (master_key.len()%8))+8
-        let master_key_encrypted= match hex::decode(&result[0].encrypt_master_key_1){
-            Ok(key)=> key,
-            Err(_)=>{
-                return Err(APIError::UTF8);
-            }
-        };
-
-        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&hex::decode(&credentials.kdf).expect("msg")));
-        
-        let nonce_len = 12usize;
-        let (nonce_bytes, ciphertext) = master_key_encrypted.split_at(nonce_len);
-        let nonce = Nonce::from_slice(nonce_bytes);
-
-        match cipher.decrypt(nonce, ciphertext){
-            Ok(o)=>return Ok(o),
-            Err(e)=>{
-                println!("Erreur lors de la création de la clé KDF: {}", e.to_string());
-                return Err(APIError::KDFError)
-            }
-        };
+        return Ok(Auth::decrypt_master_key(&result[0].encrypt_master_key_1,&credentials.kdf)?)
     }
 
     async fn decrypt_master_2_key(&self, credentials: &Credentials)-> Result<Vec<u8>,APIError>{  
         /* Récupération clé master 2 */
         let mut conn = self.db.acquire().await.expect("Impossible d'acquerir une connection DB");
-        let query = sqlx::query_as("SELECT id, encrypt_master_key_1, encrypt_master_key_2 FROM Credentials WHERE id=?").bind(credentials.id.as_str());
+        let query = sqlx::query_as("SELECT id, encrypt_master_key_1, \
+        encrypt_master_key_2 FROM Credentials WHERE id=?").bind(credentials.id.as_str());
         let result: Vec<MysqlCredentials> = query.fetch_all(&mut *conn).await.expect("Une erreur c'est produite");
         
-
         // Déchiffrement de la clé
-        let master_key_encrypted= match hex::decode(&result[0].encrypt_master_key_2){
+        return Ok(Auth::decrypt_master_key(&result[0].encrypt_master_key_2,&credentials.kdf)?)
+    }
+    fn decrypt_master_key(master_key: &String, kdf_client:&String)-> Result<Vec<u8>, APIError>{
+        let iv_tag_ciphertext= match hex::decode(master_key){
             Ok(key)=> key,
             Err(_)=>{
                 return Err(APIError::UTF8);
             }
         };
-      let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&hex::decode(&credentials.kdf).expect("msg")));
-        
-        let nonce_len = 12usize;
-        let (nonce_bytes, ciphertext) = master_key_encrypted.split_at(nonce_len);
-        let nonce = Nonce::from_slice(nonce_bytes);
-
-        match cipher.decrypt(nonce, ciphertext){
-            Ok(o)=>return Ok(o),
+        let kdf_client = match hex::decode(kdf_client){
+            Ok(key)=>key,
+            Err(_)=>return Err(APIError::KDFError)
+        };
+        let (iv, tag_ciphertext) = iv_tag_ciphertext.split_at(12);
+        const GCM_TAG_LEN:usize = 16;
+        let (tag,ciphertext) = tag_ciphertext.split_at(GCM_TAG_LEN);
+        let mut cipher = match Crypter::new(Cipher::aes_256_gcm(),Mode::Decrypt,&kdf_client, Some(&iv)){
+            Ok(cipher)=>cipher,
             Err(e)=>{
-                println!("Erreur lors de la création de la clé KDF: {}", e.to_string());
+                println!("Erreur lors que la création du cipher{}", e.errors()[0].to_string());
                 return Err(APIError::KDFError)
             }
         };
+        let _ = match cipher.set_tag(tag){
+            Ok(_)=>(),
+            Err(_)=>{
+                println!("Erreur lors de l'injection du tag GCM key_1");
+                return Err(APIError::KDFError)
+            }
+        };
+        let mut data = vec![0u8; ciphertext.len()+Cipher::aes_256_gcm().block_size()];
+        let mut len_data = match cipher.update(&ciphertext, &mut data){
+            Ok(len)=>len,
+            Err(_)=>{
+                println!("Erreur lors du déchiffrement de la clé");
+                return Err(APIError::KDFError)
+            }
+        };
+        len_data += match cipher.finalize(&mut data[len_data..]){
+            Ok(len)=>len,
+            Err(_)=>{
+                println!("Erreur lors du dechiffrement de la clé finale");
+                return Err(APIError::KDFError)
+            }
+        };
+        data.truncate(len_data);
+        return Ok(data);
+
     }
-    
 
     pub async fn delete_master_key_file(&self, uuid: &String)->Result<(), APIError>{
         let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY, uuid, uuid);
@@ -386,7 +441,7 @@ impl Auth {
         return Ok(())
     }
 
-        pub fn decode_token(token_jwt: &str) -> Result<Credentials, APIError>{
+    pub fn decode_token(token_jwt: &str) -> Result<Credentials, APIError>{
         let jwt_secret=env::var("JWT_SECRET").expect("JWT_SECRET inexistant");
         let validation = Validation::new(Algorithm::HS384);
         let token = match decode::<Credentials>(
@@ -440,18 +495,25 @@ impl Auth {
     }
 
     async fn create_kdf(&self, password: &String, salt: &String) -> Result<[u8; HASH_LENGTH], APIError>{
-        let output_len: Option<usize> = Some(HASH_LENGTH);
-        let param: Params= argon2::Params::new(MEMORY_COST, ITERATION_COST, PARALLELISM_COST, output_len).expect("problème");
         let password = password.as_bytes();
         let salt = salt.as_bytes();
         let mut out= [0u8; HASH_LENGTH];
-        let result = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, param).hash_password_into(password, salt, &mut out);
-        match result {
-            Ok(_)=> return Ok(out),
+        let _ = match kdf::argon2id(
+            None, 
+            &password, 
+            &salt, 
+            None, 
+            None, 
+            ITERATION_COST, 
+            PARALLELISM_COST, 
+            MEMORY_COST, 
+            &mut out
+        ){
             Err(e)=>{
-                println!("Erreur lors de la création du kdf : {:?}", e);
+                println!("Erreur lors de la création du kdf : {}", e.to_string());
                 return Err(APIError::KDFError)
-            }
-        }
+            },
+            Ok(_)=>return Ok(out)
+        };
     }
 }
