@@ -48,7 +48,7 @@ REVERSE_PORT="$(
     -o IdentitiesOnly=yes \
     -o BatchMode=yes \
     -o StrictHostKeyChecking=no \
-    tunnel@saveserver \
+    tunnel@strongholder.fr \
     "sudo /usr/local/sbin/alloc_reverse_port.sh '${CLIENT}'"
 )"
 log "Received port: $REVERSE_PORT"

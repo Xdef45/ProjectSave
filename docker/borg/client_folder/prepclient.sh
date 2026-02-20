@@ -8,8 +8,7 @@ BORGHELPER_USER="borghelper"
 BORGHELPER_HOME="/home/${BORGHELPER_USER}"
 BORGHELPER_SSH_DIR="${BORGHELPER_HOME}/.ssh"
 
-SERVER_HOST="saveserver"
-SERVER_IP="strongholder-borg"
+SERVER_HOST="strongholder.fr"
 
 USER_HOME="$(getent passwd "$CLIENT_USER" | cut -d: -f6)"
 [ -n "$USER_HOME" ] || { echo "Can't resolve home for $CLIENT_USER"; exit 1; }
@@ -45,8 +44,7 @@ touch "${LOCAL_SSH_DIR}/known_hosts"
 chown "${CLIENT_USER}:${CLIENT_USER}" "${LOCAL_SSH_DIR}/known_hosts"
 chmod 0600 "${LOCAL_SSH_DIR}/known_hosts"
 
-echo "ajout de l'ip du server"
-echo "${SERVER_IP} ${SERVER_HOST}" | sudo tee -a /etc/hosts > /dev/null
+echo "acceptation de la clé ssh du serveur"
 # accepte la clé du serveur (1 fois) sans interaction
 ssh-keyscan -H "${SERVER_HOST}" >> "${LOCAL_SSH_DIR}/known_hosts" 2>/dev/null || true
 
