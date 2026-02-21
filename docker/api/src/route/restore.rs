@@ -14,6 +14,7 @@ async fn get_restore(req: HttpRequest, auth: web::Data<Auth>, body: String)-> Re
     };
 
     let credentials=Auth::decode_token(cookie.value())?;
+    println!("get_restore pour {}", credentials.id);
     let _ = auth.restore_master_key_file(&credentials).await?;
 
     if body.len() == 0{
@@ -22,16 +23,15 @@ async fn get_restore(req: HttpRequest, auth: web::Data<Auth>, body: String)-> Re
     println!("{}" , &body);
     let (file, file_name) = dertermining_restore_mode(&credentials.id, &body, auth.ssh_connexion.clone(), auth.sftp_connexion.clone()).await?;
     println!("{}", &file_name);
-    auth.delete_master_key_file(&credentials.id).await?;
     let reader = TokioCompatFile::from(file);
-        let stream = StreamBuffer::new(reader);
-        auth.delete_master_key_file(&credentials.id).await?;
-        let content_disposition = ContentDisposition {
-            disposition: DispositionType::Attachment,
-            parameters: vec![
-                DispositionParam::Filename(String::from(file_name))
-            ],
-        };
-        return Ok(HttpResponse::Ok().insert_header(content_disposition).streaming(stream))
+    let stream = StreamBuffer::new(reader);
+    auth.delete_master_key_file(&credentials.id).await?;
+    let content_disposition = ContentDisposition {
+        disposition: DispositionType::Attachment,
+        parameters: vec![
+            DispositionParam::Filename(String::from(file_name))
+        ],
+    };
+    return Ok(HttpResponse::Ok().insert_header(content_disposition).streaming(stream))
 }
 
