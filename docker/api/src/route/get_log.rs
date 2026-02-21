@@ -11,7 +11,7 @@ async fn get_log(req: HttpRequest, auth: web::Data<Auth>)->Result<HttpResponse, 
     };
     let credentials= Auth::decode_token(cookie.value())?;
 
-    let _ = auth.restore_master_key_2_file(&credentials).await?;
+    let _ = auth.restore_master_key_file(&credentials).await?;
     let logs = list_log_content(&credentials.id, auth.ssh_connexion.clone()).await?;
     auth.delete_master_key_file(&credentials.id).await?;
     return Ok(HttpResponse::Ok().json(logs))

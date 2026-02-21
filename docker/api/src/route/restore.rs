@@ -14,7 +14,7 @@ async fn get_restore(req: HttpRequest, auth: web::Data<Auth>, body: String)-> Re
     };
 
     let credentials=Auth::decode_token(cookie.value())?;
-    let _ = auth.restore_master_key_2_file(&credentials).await?;
+    let _ = auth.restore_master_key_file(&credentials).await?;
 
     if body.len() == 0{
         return Err(APIError::ValidInput)

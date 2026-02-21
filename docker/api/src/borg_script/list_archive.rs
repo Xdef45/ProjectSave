@@ -15,6 +15,7 @@ pub struct Archives{
 }
 
 pub async fn list_archive(uuid: &String, ssh_connexion: Arc<Session>,)->Result<Archives, APIError>{
+    println!("List des archive pour le client : {}", uuid);
     let output = match ssh_connexion.command("sudo").args([String::from("/usr/local/sbin/list.sh"), uuid.to_string()]).output().await{
         Ok(o)=>o,
         Err(_)=>{println!("connexion ssh erreur");return Err(APIError::Ssh)}
@@ -22,23 +23,27 @@ pub async fn list_archive(uuid: &String, ssh_connexion: Arc<Session>,)->Result<A
     let stdout = match String::from_utf8(output.stdout.clone()){
         Ok(out)=>out,
         Err(_)=>{
-            println!("Erreur conversion stdout UTF8 decrypt_master_2_key_create");
+            println!("Erreur conversion stdout UTF8 list_archive");
             return Err(APIError::UTF8)
         }
     };
     let stderr = match String::from_utf8(output.stderr.clone()){
         Ok(out)=>out,
         Err(_)=>{
-            println!("Erreur conversion stderr UTF8 decrypt_master_2_key_create");
+            println!("Erreur conversion stderr UTF8 list_archive");
             return Err(APIError::UTF8)
         }
     };
     if ! output.status.success(){
-        println!("Erreur lors du listing des archives\nstdout {}\n stderr: {}", &stdout, &stderr);
+        if let Some(code) = output.status.code() {
+            println!("code erreur {}", code);
+        }
+        println!("Erreur lors du listing des archives pour le client {}\nstdout {}\n stderr: {}", uuid,&stdout, &stderr);
         return Err(APIError::Script)
     }
 
     let archives: Archives = serde_json::from_str(&stdout).expect("serde_json");
+    println!("Fin du listing pour le client{}", uuid);
     return Ok(archives)
 }
 
@@ -64,14 +69,14 @@ pub async fn list_archive_content(uuid: &String, ssh_connexion: Arc<Session>, ar
     let stdout = match String::from_utf8(output.stdout.clone()){
         Ok(out)=>out,
         Err(_)=>{
-            println!("Erreur conversion stdout UTF8 decrypt_master_2_key_create");
+            println!("Erreur conversion stdout UTF8 list_archive_content");
             return Err(APIError::UTF8)
         }
     };
     let stderr = match String::from_utf8(output.stderr.clone()){
         Ok(out)=>out,
         Err(_)=>{
-            println!("Erreur conversion stderr UTF8 decrypt_master_2_key_create");
+            println!("Erreur conversion stderr UTF8 list_archive_content");
             return Err(APIError::UTF8)
         }
     };
@@ -87,7 +92,7 @@ pub async fn list_archive_content(uuid: &String, ssh_connexion: Arc<Session>, ar
         let archive_file: ArchiveFile = match serde_json::from_str(line) {
             Ok(a)=>a,
             Err(_)=>{
-                println!("Erreur lors de la conversion string to ArchiveFile list_archive");
+                println!("Erreur lors de la conversion string to ArchiveFile list_archive_content");
                 return Err(APIError::Json);
             }
         };

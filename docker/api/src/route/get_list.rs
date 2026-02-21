@@ -18,8 +18,9 @@ async fn get_list(req: HttpRequest, auth: web::Data<Auth>, body: String)->Result
         return Err(APIError::NoCookieBearer)
     };
     let credentials= Auth::decode_token(cookie.value())?;
+    println!("get list pour l'utilisateur : {}", credentials.id);
 
-    let _ = auth.restore_master_key_2_file(&credentials).await?;
+    let _ = auth.restore_master_key_file(&credentials).await?;
     if body.len() == 0{
         let archives = list_archive(&credentials.id, auth.ssh_connexion.clone()).await?;
         auth.delete_master_key_file(&credentials.id).await?;

@@ -295,15 +295,16 @@ impl Auth {
         return username_for_encryption;
     }
 
-    pub async fn restore_master_key_2_file(&self, credentials: &Credentials)-> Result<(),APIError>{
+    pub async fn restore_master_key_file(&self, credentials: &Credentials)-> Result<(),APIError>{
         let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", 
         CLIENT_DIRECTORY, credentials.id, credentials.id);
+        println!(" Restauration de la clé {}", filename);
 
         //Vérification de la présence de la clé
         let output = match self.ssh_connexion.command("test")
         .args(["-f", filename.as_str()]).output().await{
             Ok(o)=>o,
-            Err(_)=>{println!("Erreur connexion sshrestore_master_2_file");return Err(APIError::Ssh)}
+            Err(_)=>{println!("Erreur connexion ssh restore_master_2_file");return Err(APIError::Ssh)}
         };
         let stdout = match String::from_utf8(output.stdout.clone()){
             Ok(out)=>out,
@@ -335,7 +336,9 @@ impl Auth {
             }
         };
         match key_borg.write_all(&master_key_2).await{
-            Ok(_)=>return Ok(()),
+            Ok(_)=>{
+            println!("clé restauré {}", filename);
+            return Ok(())},
             Err(_)=> return Err(APIError::Write)
         };
     }
@@ -414,6 +417,7 @@ impl Auth {
 
     pub async fn delete_master_key_file(&self, uuid: &String)->Result<(), APIError>{
         let filename = format!("{}/{}/.config/borg/keys/srv_repos_{}_repo", CLIENT_DIRECTORY, uuid, uuid);
+        println!("Supression de la clé{}", filename);
         let output = match self.ssh_connexion.command("shred").args(["-u", &filename]).output().await{
             Ok(o)=>o,
             Err(_)=>{
@@ -438,6 +442,7 @@ impl Auth {
         if ! output.status.success(){
             println!("Erreur lors de la supression de la clé borg : \nStdout: {}\nErreur: {}", stdout, stderr);
         }
+        println!("Clé suprimer {}", filename);
         return Ok(())
     }
 
