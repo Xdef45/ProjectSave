@@ -1,0 +1,368 @@
+@import "tailwindcss";
+
+/* * 1. Theme Configuration
+ * We establish our baseline color variables here. By keeping these at the root level,
+ * we ensure the app can instantly toggle between Light and Dark mode without needing
+ * to redeclare utility classes in our HTML components.
+ */
+:root {
+  --primary: #bd5ce7;
+  --primary-hover: #b929d9;
+
+  --bg: #f4f5f9;
+  --surface: #ffffff;
+  --bg-subtle: #f9fafb;
+  
+  --text-main: #2d3436;
+  --text-muted: #636e72;
+  --border: #dfe6e9;
+
+  --status-added: #00b894;
+  --status-modified: #fdcb6e;
+  --status-deleted: #d63031;
+  --status-error: #ff0000;
+  
+  --bg-added-light: #e6fffa;
+  --bg-modified-light: #fffbf0;
+  --bg-deleted-light: #fff5f5;
+  --bg-error-light: #ffe6e6;
+}
+
+.dark {
+  --primary: #d687f5;
+  --primary-hover: #bd5ce7;
+
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --bg-subtle: #334155;
+
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border: #334155;
+
+  --status-added: #4ade80;
+  --status-modified: #facc15;
+  --status-deleted: #f87171;
+  
+  --bg-added-light: rgba(74, 222, 128, 0.1);
+  --bg-modified-light: rgba(250, 204, 21, 0.1);
+  --bg-deleted-light: rgba(248, 113, 113, 0.1);
+  --bg-error-light: rgba(239, 68, 68, 0.1);
+}
+
+/* * 2. Tailwind Integration
+ * This maps our native CSS variables directly into Tailwind's utility engine. 
+ * This allows us to use classes like `bg-surface` or `text-status-added` everywhere.
+ */
+@theme {
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-bg-subtle: var(--bg-subtle); 
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-status-added: var(--status-added);
+  --color-status-modified: var(--status-modified);
+  --color-status-deleted: var(--status-deleted);
+  --color-status-error: var(--status-error);
+  
+  --radius-card: 12px;
+  --radius-input: 8px;
+  
+  --animate-pop-in: popIn 0.2s ease-out;
+  @keyframes popIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+}
+
+/* * 3. Base Resets & Global Behaviors
+ * We disable text selection globally to make the application feel like a native desktop app,
+ * then strategically re-enable it only for inputs and readable text areas.
+ */
+:root { 
+  user-select: none; 
+  -webkit-user-select: none; 
+  color-scheme: light dark; 
+}
+
+body { 
+  @apply bg-bg text-text-main font-sans min-h-screen m-0 p-0 overflow-hidden transition-colors duration-200; 
+}
+
+h2, h3, h4 { 
+  @apply font-semibold; 
+}
+
+input, textarea, .selection-info, .path-input, .selectable-text { 
+  user-select: text; 
+  -webkit-user-select: text; 
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-text-muted/20 rounded-full transition-colors;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-text-muted/40;
+}
+
+/* * 4. Core Layout System
+ * The macro-structure of the app. This defines the outer window frame, the draggable 
+ * title bar, the sidebar navigation, and the main content wrapper.
+ */
+.app-frame { 
+  @apply w-screen h-screen flex flex-col bg-bg rounded-2xl border border-border overflow-hidden shadow-2xl; 
+}
+
+.titlebar { 
+  @apply h-10 flex shrink-0 items-center justify-between px-4 bg-surface border-b border-border select-none; 
+}
+
+.window-controls { 
+  @apply flex h-full; 
+}
+
+.control-btn { 
+  @apply h-full w-12 flex items-center justify-center text-text-muted transition-colors cursor-default outline-none focus-visible:bg-bg-subtle focus-visible:text-text-main; 
+}
+.control-btn:hover { 
+  @apply bg-bg-subtle text-text-main; 
+}
+.control-btn.close:hover, .control-btn.close:focus-visible { 
+  @apply bg-red-500 text-white; 
+}
+
+.app-layout { 
+  @apply flex items-start justify-start w-full h-screen bg-bg overflow-hidden; 
+}
+
+.main-content { 
+  @apply flex-1 h-full flex flex-col overflow-hidden bg-bg relative; 
+}
+
+.sidebar { 
+  @apply w-[260px] h-full bg-surface border-r border-border flex flex-col transition-all duration-300 shrink-0 z-20; 
+}
+.sidebar.w-wide { 
+  @apply w-[350px]; 
+}
+
+.sidebar-header { 
+  @apply p-6 border-b border-border flex justify-between items-center; 
+}
+
+.sidebar-header h3 { 
+  @apply text-primary text-xl font-bold; 
+}
+
+.nav-item { 
+  @apply flex items-center gap-3 p-3 text-text-muted no-underline rounded-lg mb-1 mx-3 transition-all duration-200 font-medium cursor-pointer outline-none; 
+}
+.nav-item:hover, .nav-item:focus-visible, .nav-item.active { 
+  @apply bg-primary/10 text-primary; 
+}
+
+.sidebar-section-title { 
+  @apply px-6 py-2 text-[10px] font-bold uppercase text-text-muted bg-bg-subtle border-y border-border mt-2 first:mt-0 tracking-wider; 
+}
+
+.top-bar { 
+  @apply bg-surface py-4 px-8 flex justify-between items-center border-b border-border shadow-sm; 
+}
+
+/* * 5. Reusable UI Components
+ * Standardized elements used across multiple pages. Every interactive element here includes 
+ * explicitly defined outline and focus-visible states to guarantee keyboard accessibility.
+ */
+.btn-action {
+  @apply flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 active:scale-95 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+}
+.btn-action.primary {
+  @apply bg-primary text-white shadow-md shadow-primary/30 hover:bg-primary-hover;
+}
+.btn-action.primary:disabled {
+  @apply bg-gray-400 cursor-not-allowed opacity-70 shadow-none transform-none hover:bg-gray-400 active:scale-100;
+}
+.btn-action.secondary { 
+  @apply bg-surface text-text-main border border-border hover:bg-bg-subtle; 
+}
+.btn-action.success { 
+  @apply bg-status-added text-white shadow hover:opacity-90; 
+}
+.btn-action.danger { 
+  @apply bg-surface border border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:border-red-800; 
+}
+
+.icon-btn { 
+  @apply bg-transparent border-none cursor-pointer p-2 rounded-full text-text-muted transition-colors duration-200 flex items-center justify-center outline-none focus-visible:text-primary focus-visible:bg-bg-subtle; 
+}
+.icon-btn:hover { 
+  @apply bg-bg-subtle text-primary; 
+}
+
+.input-group { 
+  @apply mb-5 text-left relative; 
+}
+.input-group label { 
+  @apply block text-sm mb-1.5 text-text-muted font-medium; 
+}
+
+.form-input, .grey-box, .input-group input { 
+  @apply w-full p-3 border border-border rounded-input text-base text-text-main transition-all duration-300 bg-bg outline-none; 
+}
+.form-input:focus, .grey-box:focus, .input-group input:focus { 
+  @apply border-primary bg-surface shadow-[0_0_0_3px_rgba(189,92,231,0.2)]; 
+}
+
+.card { 
+  @apply bg-surface rounded-card p-6 shadow-sm border border-border; 
+}
+
+.preset-card, .backup-card { 
+  @apply relative flex flex-col justify-between bg-surface border border-border rounded-card p-5 shadow-sm transition-all duration-200 cursor-pointer overflow-hidden outline-none; 
+}
+.preset-card:hover, .backup-card:hover, .preset-card:focus-visible { 
+  @apply shadow-md border-primary/50; 
+}
+.preset-card.active { 
+  @apply border-primary bg-primary/5 ring-1 ring-primary; 
+}
+
+.toggle-switch { 
+  @apply relative w-9 h-5 bg-gray-400 rounded-full transition-colors duration-300 cursor-pointer border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2; 
+}
+.toggle-switch::after { 
+  content: ''; 
+  @apply absolute top-[2px] left-[2px] w-4 h-4 bg-white rounded-full transition-transform duration-300 shadow-sm; 
+}
+.toggle-switch.active { 
+  @apply bg-status-added; 
+}
+.toggle-switch.active::after { 
+  transform: translateX(16px); 
+}
+
+.main-fab { 
+  @apply w-14 h-14 rounded-full border-4 border-white shadow-xl overflow-hidden transition-all duration-300 bg-surface flex items-center justify-center text-text-muted dark:border-gray-700 outline-none focus-visible:ring-4 focus-visible:ring-primary/50; 
+}
+.main-fab:hover, .main-fab:focus-visible { 
+  @apply scale-110 -translate-y-1 shadow-2xl text-primary; 
+}
+
+.progress-container { 
+  @apply w-full bg-bg rounded-full h-2 overflow-hidden; 
+}
+.progress-fill { 
+  @apply h-full bg-primary transition-all duration-300 ease-out; 
+}
+
+/* * 6. Semantic Utilities & Overlays
+ * Helper classes designed to be mixed into elements to quickly designate state.
+ */
+.text-status-added    { color: var(--color-status-added); }
+.text-status-modified { color: var(--color-status-modified); }
+.text-status-deleted  { color: var(--color-status-deleted); }
+.text-status-error    { color: var(--color-status-error); }
+
+.bg-status-added      { background-color: var(--color-status-added); }
+.bg-status-deleted    { background-color: var(--color-status-deleted); }
+.border-status-deleted{ border-color: var(--color-status-deleted) !important; }
+
+.badge { 
+  @apply px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide inline-flex items-center; 
+}
+.badge-manual { 
+  @apply bg-gray-100 text-text-muted border border-border dark:bg-gray-800 dark:text-gray-300; 
+}
+.badge-scheduled { 
+  @apply bg-gray-100 text-text-muted border border-border dark:bg-gray-800 dark:text-gray-300; 
+}
+.badge-running { 
+  @apply bg-amber-100 text-amber-600 animate-pulse dark:bg-amber-900/30 dark:text-amber-300; 
+}
+
+.tag-added    { background-color: var(--bg-added-light); color: var(--color-status-added); }
+.tag-modified { background-color: var(--bg-modified-light); color: var(--color-status-modified); }
+.tag-deleted  { background-color: var(--bg-deleted-light); color: var(--color-status-deleted); }
+.tag-error    { background-color: var(--bg-error-light); color: var(--color-status-error); }
+.tag-default  { @apply bg-bg-subtle text-text-muted; }
+
+.modal-overlay { 
+  @apply absolute inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center; 
+}
+.modal-content { 
+  @apply bg-surface rounded-2xl shadow-2xl p-6 w-[400px] border border-border transform scale-100 transition-all; 
+  animation: var(--animate-pop-in); 
+}
+
+.language-picker-container { 
+  @apply fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-3 pointer-events-auto; 
+}
+
+/* * 7. Page-Specific Scopes
+ * Highly localized classes tied to unique page layouts to keep the markup clean.
+ */
+
+/* Login View */
+.login-card { 
+  @apply bg-surface w-full max-w-[400px] p-10 rounded-card shadow-lg text-center; 
+}
+.btn-login { 
+  @apply w-full p-3.5 bg-primary text-white border-none rounded-lg text-base font-semibold cursor-pointer transition-all duration-300 mt-2.5 active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-70 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2; 
+}
+.btn-login:not(:disabled):hover { 
+  @apply bg-primary-hover; 
+}
+
+.validation-popup { 
+  @apply absolute top-1/2 -translate-y-1/2 w-[260px] bg-surface border border-border rounded-lg p-4 shadow-xl z-50 opacity-0 invisible transition-all duration-200 pointer-events-none; 
+  left: calc(100% + 20px); 
+}
+.validation-popup.visible { 
+  @apply opacity-100 visible; left: calc(100% + 15px); 
+}
+.validation-popup::before, .validation-popup::after { 
+  content: ''; position: absolute; top: 50%; transform: translateY(-50%); border-top: 8px solid transparent; border-bottom: 8px solid transparent; 
+}
+.validation-popup::before { left: -8px; border-right: 8px solid var(--color-border); }
+.validation-popup::after  { left: -7px; border-right: 8px solid var(--color-surface); }
+.validation-popup ul { @apply list-none p-0 m-0; }
+.validation-popup li { @apply text-[11px] flex items-center gap-2 mb-1; }
+.validation-popup li.valid { @apply text-status-added; }
+.validation-popup li.invalid { @apply text-status-deleted; }
+
+/* Dashboard View */
+.dashboard-wrapper { @apply p-8 w-full max-w-[1200px] mx-auto overflow-y-auto; }
+.stats-grid { @apply grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-5 mb-8; }
+.details-grid { @apply grid grid-cols-1 md:grid-cols-3 gap-5; }
+.detail-card { @apply flex flex-col items-center justify-center py-8; }
+.detail-number { @apply text-4xl font-bold mb-2 text-text-main; }
+.detail-label { @apply text-sm text-text-muted; }
+.section-title { @apply text-lg text-text-main mb-4 font-semibold border-l-4 border-primary pl-3; }
+
+/* File Explorer View */
+.file-explorer { @apply bg-surface border border-border rounded-lg h-[350px] overflow-y-auto mb-4; }
+.tree-item { @apply flex items-center gap-3 p-2.5 cursor-pointer hover:bg-primary/5 transition-colors text-sm text-text-main outline-none focus-visible:bg-primary/10; }
+.tree-item.selected { @apply bg-primary/10 border-l-4 border-primary; }
+.path-input-wrapper { @apply flex gap-2 mb-4; }
+.explorer-row { @apply flex items-center justify-between p-2.5 text-sm border-b border-border bg-surface transition-colors cursor-pointer; }
+.explorer-row:hover { @apply bg-bg-subtle; }
+
+/* Settings View */
+.settings-tabs { @apply flex border-b border-border bg-bg-subtle px-6 pt-2 gap-6; }
+.tab-btn { @apply pb-3 text-sm font-bold text-text-muted border-b-2 border-transparent transition-all hover:text-text-main outline-none focus-visible:text-primary; }
+.tab-btn.active { @apply text-primary border-primary; }
+.settings-group { @apply bg-surface border border-border rounded-card p-6 mb-6 shadow-sm; }
+.settings-row { @apply flex items-center justify-between py-3 border-b border-border last:border-0; }
+.settings-label { @apply flex flex-col; }
+.settings-title { @apply text-sm font-medium text-text-main; }
+.settings-desc { @apply text-xs text-text-muted mt-0.5; }
