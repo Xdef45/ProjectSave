@@ -1,0 +1,35 @@
+[package]
+name = "Strongholder"
+version = "1.0.0"
+description = "An app designed to save your precious data securely."
+authors = ["Strongholder"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.5.3", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.9.5", features = ["tray-icon"] }
+dirs = "6.0.0"
+tauri-plugin-fs = "2"
+battery = "0.7.8"
+keepawake = "0.6.0"
+tauri-plugin-autostart = "2.2.0"
+open = "5.0" # Needed to open the executable path easily
+tauri-plugin-notification = "2.0.0"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12.0", features = ["json", "cookies", "rustls-tls-webpki-roots", "stream"] }
+tar = "0.4"
+flate2 = "1.0"
+tauri-plugin-dialog = "2.0"
+rayon = "1.10.0"
