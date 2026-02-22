@@ -21,7 +21,7 @@
 
 ## 2. Description du projet
 
-Ce projet consiste en une solution de sauvegarde chiffrée de fichiers sécurisée. Il permet de séparer le processus de sauvegarde qui est automatique et invisible et la restauration des sauvegarde qui demandera toujours un mot de passe. Une application est intégrer afin définir les dossiers à sauvegarde et lors de la restauration d’une sauvegarde chiffrer que cette action ne soit pas automatique comme pour la sauvegarde mais requiert des identifiants. Comment ça en cas de compromission du pc du client, l’attaquant ne puisse seulement qu’ajouter des données dans le dépôt du client mais ne puisse ni les restaurer ou ni les supprimer. Elle servira aussi à avoir un retour sur les logs, les archives et les fichiers qui ont été sauvegarder mais également à créer le dépôt Borg et authentifier les utilisateurs.
+Ce projet consiste en une solution de sauvegarde chiffrée de fichiers sécurisée. Une application est intégrer afin de définir les dossiers à sauvegarder et les fichier à restaurer en demander un identifiants. Comme ça en cas de compromission du pc du client, l’attaquant ne puisse pas restaurer au supprimer les sauvegarde. Elle servira aussi à avoir un retour sur les logs, les archives et les fichiers qui ont été sauvegarder mais également à créer le dépôt Borg et authentifier les utilisateurs.
 
 ## 3. Infrastructure
 L'infrastructure fonctionne en plusieurs étages :
