@@ -26,7 +26,7 @@ L’API est intégrer afin que lors de la restauration d’une sauvegarde chiffr
 ## Base de données
 L’application exécuté est MariaDB qui est un service Mysql
 
-Cette base données est une image `mariadb:12.2-rc` est sert à l’api pour stocker les utilisateurs enregistrés. Je lui donne juste sont `.env` avec les identifiants et le nom de la base données à créer. En complément, je lui donne un export de la structure de la base de données à créer.
+Cette base données est une image `mariadb:12.2-noble` est sert à l’api pour stocker les utilisateurs enregistrés. Je lui donne juste sont `.env` avec les identifiants et le nom de la base données à créer. En complément, je lui donne un export de la structure de la base de données à créer.
 # Processus de déploiement
 ## Création des secrets
 Un docker-compose ```gen_credentials``` a été réalisé. À son lancement, il génère des secret pour les 4 autres docker. Pour y parvenir, il utilise un volume persistant pour pouvoir exporter ses secrets. Son image est un alpine:3.14 avec openssl et openssh d’installés.
