@@ -21,7 +21,7 @@
 
 ## 2. Description du projet
 
-Ce projet consiste en une solution de sauvegarde chiffrée de fichiers sécurisée. Un utilisateur peut depuis une interface web/application sauvegarder ses fichiers en toute sécurité de n'importe où. Chaque utilisateur possède donc un compte qui lui permet d'intéragir avec ses sauvegardes et d'en créer des nouvelles. 
+Ce projet consiste en une solution de sauvegarde chiffrée de fichiers sécurisée. Il permet de séparer le processus de sauvegarde qui est automatique et invisible et la restauration des sauvegarde qui demandera toujours un mot de passe. Une application est intégrer afin définir les dossiers à sauvegarde et lors de la restauration d’une sauvegarde chiffrer que cette action ne soit pas automatique comme pour la sauvegarde mais requiert des identifiants. Comment ça en cas de compromission du pc du client, l’attaquant ne puisse seulement qu’ajouter des données dans le dépôt du client mais ne puisse ni les restaurer ou ni les supprimer. Elle servira aussi à avoir un retour sur les logs, les archives et les fichiers qui ont été sauvegarder mais également à créer le dépôt Borg et authentifier les utilisateurs.
 
 ## 3. Infrastructure
 L'infrastructure fonctionne en plusieurs étages :
@@ -48,6 +48,12 @@ Ceph | Ubuntu | 2 | 2Go | **D1:** 30Go ; **D2:** 250Go | 1
 Proxmox | Proxmox | 10 | 10Go | **D1:** 100Go | 1
 Supervision | Debian | 4 | 4Go | **D1:** 150Go | 1
 
+**Infrastructure de virtualisation redondante**
+
+Avec notre cluster de 3 Ceph, on est capable de créer un pool RADOS. C'est un protocole permettant aux Proxmox de de stocker le disque des VM sur le cluster Ceph. Ce système de stockage est capable de distribué sous forme d'objet par le réseau les données des disques. Ainsi avec les 2 Proxmox, si l'un deux s'éteint ou est en maintenance, il migre la VM sans interruption sur l'autre Proxmox. Et si l'un des Ceph s'arrête, le pool passe en lecture seul et attendra que ce dernier redémarre ou l'ajout d'une nouvelle machine Ceph.
+
+Nous somme capable de perdre 1 Proxmox et 1 Ceph mais nous passerons en lecture seul.
+
 ### Niveau 3
 ![](/documentations%20des%20outils/images/infra%20niveau%203.png)
 Voici l'infrastructure complète avec toutes le VM, service et conteneur disponible.
@@ -57,6 +63,8 @@ Service|Fonction|Description
 ---|---|---
 Wireguard|VPN|Accès distant au réseau interne
 Haproxy|Proxy|Le vault est accessible uniquement par le proxy et ajoute le chiffrement HTTP que vaultwarden n'a pas
+
+
 
 **Machine virtuelle**
 
@@ -93,19 +101,27 @@ Voici une liste exhaustive des fonctionnalités disponibles dans notre projet:
 - Sauvegarde de fichiers chiffré
 - Gestionnaire de mot de passe
 - Interface WEB
-- Application electron
+- Application tauri
+- Supervision de l'infrastructure
+- Infrastructure de virtualisation redondante
+- API d'authentification et restauration.
+- Un accès distant à l'infrastructure interne avec le VPN Wireguard
 
 ## 5. Technologies utilisées
 * Comme hyperviseur principal nous avons choisi [Proxmox](https://www.proxmox.com/en/) car c'est un outil très complet nous donnant toutes les fonctionnalitées nécessaire pour notre projet.
 * Comme routeur/pare-feu nous utilisons [Pfsense](https://www.pfsense.org/), outil très puissant et gratuit nous donnant tout les outils nécessaires concernant les accès aux différentes machines, redirection de port et la création des VLANs pour isoler les machines entre elles et n'autoriser que le traffic nécessaire.
 * L'outil de sauvegarde que nous utilisons est [Borg](https://www.borgbackup.org/) car il répond parfaitement à la demande des sauvegardes chiffrées et qu'il est open source.
 * Pour la sécurité de toutes les machines de l'infrastructure nous utilisons la solution open source [Wazuh](https://wazuh.com/) qui nous permet d'avoir une vue d'ensemble sur les machines et des vulnérabilités.
-* Comme gestionnaire de mot de passe intégré, nous avons choisi la solution [VaultWarden](https://github.com/dani-garcia/vaultwarden) qui est gratuite et open source. On ajoute à cela la solution [zabbix](https://www.zabbix.com/fr) qui nous permet une vue d'ensemble des machines concernant leur statistiques CPU, mémoire et leur stockage.
+* Comme gestionnaire de mot de passe intégré, nous avons choisi la solution [VaultWarden](https://github.com/dani-garcia/vaultwarden) qui est gratuite et open source. 
+* La solution [zabbix](https://www.zabbix.com/fr) qui nous permet une vue d'ensemble des machines concernant leur statistiques CPU, mémoire et leur stockage.
 * Les sauvegardes sont sauvegarder sur des machines utilisant le système de [Ceph](https://ceph.io/en/), qui réplique automatiquement les sauvegardes sur d'autres disques pour garantir une redondance.
-
+* Pour déployer notre solution de sauvegarde rapidement et n'importe où on utilise [Docker](https://www.docker.com/) car c'est la solution de conteuneurisation qu'on a le plus utilisé jusqu'à présent.
+* Pour la réalisation de notre API nous avons utilisé le framework [Actix Web](https://actix.rs/) qui est un service web codé en rust. Nous pensons que le rust est le langage du futur.
+* Pour le chiffrement, nous utilisons [AES-256-GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode) c'est l'un des plus connues et utilisé pour le chiffrement de fichier 
+* Pour la dérivation de mot de passe nous employerons [Argon2id](https://en.wikipedia.org/wiki/Argon2) qui est résistant contre les attaques de brute-force avec GPU et les side-channel attacks.
 ## 6. Fonctionnement 
 
-1. Un utilisateur se créer un compte sur le site avec un nom d'utilisateur et un mot de passe 
-2. Il peut alors télécharger notre application
+1. Un utilisateur se créer un compte sur l'application [Strongholder](https://strongholder.fr/) téléchargeable sur le site avec un nom d'utilisateur et un mot de passe et son repos de sauvegarde se créera.
+2. Il peut alors lancer notre application sur Windows ou Linux
 ![ScreenApp](/documentations%20des%20outils/images/AppAccueil.png)
 3. Il peut désormais envoyer ses sauvegardes en tout sécurité sur notre infrastructure
