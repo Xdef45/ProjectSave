@@ -13,11 +13,11 @@
 
 | **Membres** | **Rôles** |
 | --- | --- |
-| Samuel Bredas | Dev scripts |
-| Clément | Administrateur Système et réseau |
-| Arthur | Dev Application |
-| Samuel Ardilla | Analyste Supervision |
-| Marc Antoine | Administrateur Système et réseau |
+| Collaborateur_1 | Dev scripts |
+| Collaborateur_2 | Administrateur Système et réseau |
+| Collaborateur_3 | Dev Application |
+| Collaborateur_4 | Analyste Supervision |
+| Collaborateur_5 | Administrateur Système et réseau |
 
 ## 2. Description du projet
 
@@ -123,5 +123,7 @@ Voici une liste exhaustive des fonctionnalités disponibles dans notre projet:
 
 1. Un utilisateur se créer un compte sur l'application [Strongholder](https://strongholder.fr/) téléchargeable sur le site avec un nom d'utilisateur et un mot de passe et son repos de sauvegarde se créera.
 2. Il peut alors lancer notre application sur Windows ou Linux
-![ScreenApp](/documentations%20des%20outils/images/AppAccueil.png)
-3. Il peut désormais envoyer ses sauvegardes en tout sécurité sur notre infrastructure
+![ScreenApp](/documentations%20des%20outils/images/Strongholder/dashborad.png)
+3. Il peut désormais envoyer ses sauvegardes en tout sécurité sur notre infrastructure ![](/documentations%20des%20outils/images/Strongholder/sauvegarde.png)
+4. Il existe un listing des sauvegardes faîtes jusqu'à présent ![](/documentations%20des%20outils/images/Strongholder/list_archive.png)
+5. Une remontée des logs créer lors de la sauvegarde est possible ![](/documentations%20des%20outils/images/Strongholder/logs.png)
