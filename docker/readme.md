@@ -16,7 +16,7 @@ L’application qui est exécuté est openssh qui est un service ssh
 
 Le docker de sauvegarde `strongholder-borg` est lancé sur une image `debian:latest` .
 
-Le docker fait principalement tourner le service `openssh-server`, il expose son port 22, pour permettre à l’api ainsi qu’aux clients de faire des opérations par ssh.
+Le docker fait principalement tourner le service `openssh-server`, il expose son port 22 sur le pour 2222 de l'hôte, pour permettre à l’api ainsi qu’aux clients de faire des opérations par ssh.
 ## API
 L’application qui est exécuté est strongholer qui est un service http
 
